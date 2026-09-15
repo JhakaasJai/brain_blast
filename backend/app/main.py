@@ -5,12 +5,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import auth, patients, games, reminders, dashboard, voice, notifications, reminiscence, social, daily_living, mood, activity, education, wellbeing, visits, regional, appointments, transport
+from app.seed import seed_db
 
 app = FastAPI(
     title="SIH PS 26003 — Cognitive Gaming & Memory Assistance Platform",
     description="AI-Based Cognitive Gaming & Memory Assistance Platform for Elderly Dementia Patients in NER (Prototype)",
     version="0.1.0-prototype",
 )
+
+@app.on_event("startup")
+def on_startup():
+    seed_db()
 
 app.add_middleware(
     CORSMiddleware,
