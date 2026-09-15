@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: ps26003-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=change-me-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: ps26003-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# No Postgres container — prototype uses in-memory data (mock_data.py)
+# To add Postgres: uncomment below and update backend DATABASE_URL env var
+#
+#   db:
+#     image: postgres:16
+#     container_name: ps26003-db
+#     environment:
+#       POSTGRES_DB: ps26003
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: yourpassword
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+#     ports:
+#       - "5432:5432"
+#
+# volumes:
+#   pgdata:
