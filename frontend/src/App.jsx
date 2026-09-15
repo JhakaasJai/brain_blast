@@ -26,6 +26,10 @@ import DailyLivingPage     from './pages/DailyLivingPage'
 import MoodPage             from './pages/MoodPage'
 import ActivityPage         from './pages/ActivityPage'
 import EducationPage        from './pages/EducationPage'
+import CaregiverWellbeingPage from './pages/CaregiverWellbeingPage'
+import VisitPlanningPage from './pages/VisitPlanningPage'
+import AppointmentPrepPage from './pages/AppointmentPrepPage'
+import TransportNotesPage from './pages/TransportNotesPage'
 
 function RequireAuth({ children, roles }) {
   const { user, loading } = useAuth()
@@ -153,6 +157,26 @@ function AppRoutes() {
         <Route path="/education" element={
           <RequireAuth roles={['caregiver', 'health_worker', 'admin']}>
             <EducationPage />
+          </RequireAuth>
+        } />
+        <Route path="/caregiver-wellbeing" element={
+          <RequireAuth roles={['caregiver', 'health_worker', 'admin']}>
+            <CaregiverWellbeingPage />
+          </RequireAuth>
+        } />
+        <Route path="/visit-planning" element={
+          <RequireAuth roles={['health_worker', 'admin']}>
+            <VisitPlanningPage />
+          </RequireAuth>
+        } />
+        <Route path="/appointment-prep" element={
+          <RequireAuth roles={['patient', 'caregiver', 'health_worker', 'admin']}>
+            <AppointmentPrepPage />
+          </RequireAuth>
+        } />
+        <Route path="/transport-notes" element={
+          <RequireAuth roles={['patient', 'caregiver', 'health_worker', 'admin']}>
+            <TransportNotesPage />
           </RequireAuth>
         } />
         <Route path="*" element={

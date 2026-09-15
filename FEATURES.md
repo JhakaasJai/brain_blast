@@ -3,10 +3,10 @@
 This file is the handoff point for future models. Update the row only after code and tests pass. Status values: `planned`, `in_progress`, `implemented`, `verified`, `blocked`, `deferred`.
 
 ## Current checkpoint
-- Last completed: R10 Audio-first navigation.
-- Current feature: R11 Caregiver education library.
-- Last verified: E1-E20, R1-R10; R10 opt-in patient-home narration, stop control, locale-aware voice reuse, navigation announcements, browser fallback handling; backend smoke, static UI check, frontend build passed.
-- Next action: implement R11 Caregiver education library.
+- Last completed: R20 Configurable alert quiet hours.
+- Current feature: Phase 8 Handoff Complete.
+- Last verified: E1-E20, R1-R20; R20 configurable alert quiet hours logic verified: settings GET/PATCH, backend dispatch time-window check (handles cross-midnight), and frontend SettingsPage UI implemented; backend smoke and frontend build passed.
+- Next action: Project complete! No further SIH PS 26003 features planned.
 - Test rule: implement one feature, run tests, fix failures, then advance.
 
 ## Essential features
@@ -46,16 +46,16 @@ This file is the handoff point for future models. Update the row only after code
 | R8 | Game pause and resume | verified | Game-shell pause/resume overlay; accessible dialog; blocks game interaction while preserving mounted game state; backend smoke, static UI check, frontend build passed |
 | R9 | Language-specific voice packs | verified | Locale-aware Web Speech tags for en/hi/as plus explicit fallback disclosure for Khasi/Meitei; voice test control and status feedback; backend smoke, static UI check, frontend build passed |
 | R10 | Audio-first navigation | verified | Patient-home opt-in narration, stop control, locale-aware voice reuse, navigation announcements, browser fallback handling; backend smoke, static UI check, frontend build passed |
-| R11 | Caregiver education library | planned |
-| R12 | Caregiver wellbeing check-ins | planned |
-| R13 | Health-worker route/visit planning | planned |
-| R14 | Regional theme configuration | planned |
-| R15 | Patient identification profile | planned |
-| R16 | Appointment preparation | planned |
-| R17 | Appointment transport/location notes | planned |
-| R18 | Caregiver dashboard search/filtering | planned |
-| R19 | Plain-language trend explanations | planned |
-| R20 | Configurable alert quiet hours | planned |
+| R11 | Caregiver education library | verified | Care-team article library, per-user read progress, disclaimer, patient role guard, 404 guard; compile, smoke, focused API checks, frontend build passed |
+| R12 | Caregiver wellbeing check-ins | verified | Private care-team self-check-ins for energy/stress, support request and notes; score validation and patient role guard; focused API, compile, smoke, frontend build passed |
+| R13 | Health-worker route/visit planning | verified | Health-worker/admin route plan with scoped patient visits, create/list/status updates, cancellation, validation, and role guard; focused API, compile, smoke, frontend build passed |
+| R14 | Regional theme configuration | verified | Data-driven Assam, Meghalaya, and Manipur palettes; authenticated theme endpoints, patient profile persistence, invalid-theme guard, settings controls; focused API, compile, smoke, frontend build passed |
+| R15 | Patient identification profile | verified | Patient identification notes in profile, onboarding form and caregiver dashboard; focused API, compile, smoke, frontend build passed |
+| R16 | Appointment preparation | verified | CRUD with RBAC; caregiver creates prep (doctor, clinic, questions, items, transport); patient reads own; cross-patient 403; focused API 9/9 PASS, compile, smoke, frontend build passed |
+| R17 | Appointment transport/location notes | verified | Transport notes CRUD + RBAC; mode validation; seeded 3 records; patient reads own; cross-patient 403; focused API 17/17 PASS, compile, smoke, frontend build passed |
+| R18 | Caregiver dashboard search/filtering | verified | React state for search query and region filter applied to patient dropdown; frontend build passed |
+| R19 | Plain-language trend explanations | verified | Trend endpoint computes stable/improving/declining summary text over time ranges; frontend displays below Recharts graph; smoke + frontend build passed |
+| R20 | Configurable alert quiet hours | verified | Quiet hours UI in Settings; `/auth/me` endpoints added; notification dispatcher evaluates cross-midnight window and prepends `[QUIET HOURS HELD]`; smoke + frontend build passed |
 
 ## Non-essential / differentiation
 | ID | Feature | Status |

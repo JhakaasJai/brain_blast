@@ -47,6 +47,15 @@ export const getProfile = (patientId) =>
 export const updateProfile = (patientId, data) =>
   api.put(`/patients/${patientId}/profile`, data).then((r) => r.data)
 
+export const getMe = () =>
+  api.get('/auth/me').then((r) => r.data)
+
+export const updateMe = (data) =>
+  api.patch('/auth/me', data).then((r) => r.data)
+
+export const getRegionalThemes = () =>
+  api.get('/regional-themes').then((r) => r.data)
+
 export const getMedications = (patientId) =>
   api.get(`/patients/${patientId}/medications`).then((r) => r.data)
 
@@ -181,5 +190,57 @@ export const getEducationArticle = (articleId) =>
 
 export const updateEducationProgress = (articleId, completed) =>
   api.patch(`/education/articles/${articleId}/progress`, { completed }).then((r) => r.data)
+
+// Caregiver wellbeing check-ins
+export const getCaregiverWellbeing = () =>
+  api.get('/caregiver-wellbeing').then((r) => r.data)
+
+export const createCaregiverWellbeing = (data) =>
+  api.post('/caregiver-wellbeing', data).then((r) => r.data)
+
+// Health-worker route and visit planning
+export const getVisitPlans = (patientId) =>
+  api.get('/health-worker/visits', { params: patientId ? { patient_id: patientId } : {} }).then((r) => r.data)
+
+export const createVisitPlan = (data) =>
+  api.post('/health-worker/visits', data).then((r) => r.data)
+
+export const updateVisitPlan = (visitId, data) =>
+  api.patch(`/health-worker/visits/${visitId}`, data).then((r) => r.data)
+
+export const deleteVisitPlan = (visitId) =>
+  api.delete(`/health-worker/visits/${visitId}`)
+
+// Appointment preparation (R16)
+export const getAppointmentPreps = (patientId) =>
+  api.get(`/patients/${patientId}/appointment-prep`).then((r) => r.data)
+
+export const getNextAppointmentPrep = (patientId) =>
+  api.get(`/patients/${patientId}/appointment-prep/next`).then((r) => r.data)
+
+export const createAppointmentPrep = (patientId, data) =>
+  api.post(`/patients/${patientId}/appointment-prep`, data).then((r) => r.data)
+
+export const updateAppointmentPrep = (patientId, prepId, data) =>
+  api.patch(`/patients/${patientId}/appointment-prep/${prepId}`, data).then((r) => r.data)
+
+export const deleteAppointmentPrep = (patientId, prepId) =>
+  api.delete(`/patients/${patientId}/appointment-prep/${prepId}`)
+
+// Appointment transport / location notes (R17)
+export const getTransportNotes = (patientId) =>
+  api.get(`/patients/${patientId}/transport-notes`).then((r) => r.data)
+
+export const getTransportNote = (patientId, noteId) =>
+  api.get(`/patients/${patientId}/transport-notes/${noteId}`).then((r) => r.data)
+
+export const createTransportNote = (patientId, data) =>
+  api.post(`/patients/${patientId}/transport-notes`, data).then((r) => r.data)
+
+export const updateTransportNote = (patientId, noteId, data) =>
+  api.patch(`/patients/${patientId}/transport-notes/${noteId}`, data).then((r) => r.data)
+
+export const deleteTransportNote = (patientId, noteId) =>
+  api.delete(`/patients/${patientId}/transport-notes/${noteId}`)
 
 export default api

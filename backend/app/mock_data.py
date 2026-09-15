@@ -81,6 +81,25 @@ EDUCATION_ARTICLES: list[dict] = [
 
 EDUCATION_PROGRESS: list[dict] = []
 
+# Caregiver self-reported wellbeing; support-oriented, not a clinical score.
+CAREGIVER_WELLBEING: list[dict] = []
+
+# Health-worker route/visit plans. Prototype keeps these in memory.
+VISIT_PLANS: list[dict] = [
+    {
+        "id": "visit-1",
+        "patient_id": "user-patient-1",
+        "patient_name": "Rina Borah",
+        "scheduled_at": "2026-09-17T09:00:00+00:00",
+        "purpose": "Routine wellbeing check",
+        "location": "Patient home",
+        "notes": "Review care summary and daily routine.",
+        "status": "planned",
+        "created_by": "user-hw-1",
+        "created_at": _days_ago(1).isoformat(),
+    },
+]
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Users
 # ──────────────────────────────────────────────────────────────────────────────
@@ -124,7 +143,9 @@ USERS: list[dict] = [
         "preferred_language": "en",
         "state_region": "Assam",
         "password_hash": get_password_hash("cg1pass"),
-        "created_at": _days_ago(44).isoformat(),
+        "created_at": _days_ago(45).isoformat(),
+        "quiet_hours_start": "22:00",
+        "quiet_hours_end": "07:00",
     },
     {
         "id": "user-caregiver-2",
@@ -204,6 +225,7 @@ PATIENT_PROFILES: dict[str, dict] = {
         "mobility_notes": "Walks independently; avoid slippery floors.",
         "vision_notes": "Uses reading glasses.",
         "hearing_notes": " prefers slow, clear speech.",
+        "identification_notes": "Wears a silver bracelet with caregiver phone number.",
         "current_difficulty": {
             "memory": "easy",
             "attention": "easy",
@@ -668,6 +690,142 @@ ALERTS: list[dict] = [
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Appointment Preparation records (R16)
+# ──────────────────────────────────────────────────────────────────────────────
+
+APPOINTMENT_PREPS: list[dict] = [
+    {
+        "id": "appt-prep-1",
+        "patient_id": "user-patient-1",
+        "appointment_at": _days_ago(-3).isoformat(),
+        "doctor_name": "Dr. Pranjal Saikia",
+        "clinic_or_hospital": "Gauhati Medical College, Neurology OPD",
+        "questions_to_ask": [
+            "Is the current medication dose correct?",
+            "Are there any new exercises that may help memory?",
+        ],
+        "items_to_bring": [
+            "Aadhar card",
+            "Previous prescription",
+            "Blood pressure log notebook",
+        ],
+        "transport_notes": "Auto-rickshaw from Khatikuchi stand at 9:30am; allow 40 minutes.",
+        "extra_notes": "Rina may feel anxious in crowded waiting areas — arrive early.",
+        "created_by": "user-caregiver-1",
+        "created_at": _days_ago(1).isoformat(),
+        "disclaimer": (
+            "This preparation note is an organisational aid only and does not "
+            "constitute medical advice. Discuss all clinical decisions with the patient's doctor."
+        ),
+    },
+    {
+        "id": "appt-prep-2",
+        "patient_id": "user-patient-2",
+        "appointment_at": _days_ago(-7).isoformat(),
+        "doctor_name": "Dr. Wansalan Khongwir",
+        "clinic_or_hospital": "Nongkynmaw PHC, General Clinic",
+        "questions_to_ask": [
+            "Are the Alzheimer's tablets still the right ones?",
+            "Should the dose change based on recent behaviour?",
+        ],
+        "items_to_bring": [
+            "Health card",
+            "Medication list",
+        ],
+        "transport_notes": "Community jeep leaves at 8am from the market square.",
+        "extra_notes": None,
+        "created_by": "user-caregiver-2",
+        "created_at": _days_ago(2).isoformat(),
+        "disclaimer": (
+            "This preparation note is an organisational aid only and does not "
+            "constitute medical advice. Discuss all clinical decisions with the patient's doctor."
+        ),
+    },
+    {
+        "id": "appt-prep-3",
+        "patient_id": "user-patient-3",
+        "appointment_at": _days_ago(-5).isoformat(),
+        "doctor_name": "Dr. Sonia Oinam",
+        "clinic_or_hospital": "RIMS Imphal, Neurology",
+        "questions_to_ask": [
+            "Is memory decline progressing?",
+            "Can we try a lower dose due to side effects?",
+        ],
+        "items_to_bring": [
+            "Voter ID",
+            "Last scan report",
+            "Current medication packet",
+        ],
+        "transport_notes": "Family vehicle; park at Gate 3. Appointment is at 2pm.",
+        "extra_notes": "Bring a familiar snack as comfort — Thangjing gets restless after 90 minutes.",
+        "created_by": "user-caregiver-1",
+        "created_at": _days_ago(3).isoformat(),
+        "disclaimer": (
+            "This preparation note is an organisational aid only and does not "
+            "constitute medical advice. Discuss all clinical decisions with the patient's doctor."
+        ),
+    },
+]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Appointment Transport / Location Notes (R17)
+# ──────────────────────────────────────────────────────────────────────────────
+
+TRANSPORT_NOTES: list[dict] = [
+    {
+        "id": "transport-1",
+        "patient_id": "user-patient-1",
+        "appointment_ref": "appt-prep-1",
+        "appointment_at": _days_ago(-3).isoformat(),
+        "mode": "auto",
+        "pickup_point": "Khatikuchi main road stand, near the tea stall",
+        "pickup_time": "09:30",
+        "driver_or_contact_name": "Raju Bora (auto driver)",
+        "driver_or_contact_phone": "+919876500011",
+        "destination": "Gauhati Medical College, Neurology OPD, Gate 2",
+        "estimated_travel_minutes": 40,
+        "return_notes": "Call the same driver after the appointment. He waits near Gate 2.",
+        "extra_notes": "Rina prefers the window seat. Remind driver to go slowly on the bridge.",
+        "created_by": "user-caregiver-1",
+        "created_at": _days_ago(1).isoformat(),
+    },
+    {
+        "id": "transport-2",
+        "patient_id": "user-patient-2",
+        "appointment_ref": "appt-prep-2",
+        "appointment_at": _days_ago(-7).isoformat(),
+        "mode": "bus",
+        "pickup_point": "Nongkynmaw market square — community jeep stand",
+        "pickup_time": "08:00",
+        "driver_or_contact_name": "Community health worker Pynshngain",
+        "driver_or_contact_phone": "+919876500022",
+        "destination": "Nongkynmaw PHC, General Clinic",
+        "estimated_travel_minutes": 20,
+        "return_notes": "Return jeep departs at 12:30. Ensure Banshan boards on time.",
+        "extra_notes": None,
+        "created_by": "user-caregiver-2",
+        "created_at": _days_ago(2).isoformat(),
+    },
+    {
+        "id": "transport-3",
+        "patient_id": "user-patient-3",
+        "appointment_ref": "appt-prep-3",
+        "appointment_at": _days_ago(-5).isoformat(),
+        "mode": "family_vehicle",
+        "pickup_point": "Home — Sagolband area, Imphal",
+        "pickup_time": "13:00",
+        "driver_or_contact_name": "Son — Roshan Haobijam",
+        "driver_or_contact_phone": "+919876500033",
+        "destination": "RIMS Imphal, Neurology Block, Gate 3",
+        "estimated_travel_minutes": 25,
+        "return_notes": "Roshan will wait at Gate 3 after the appointment.",
+        "extra_notes": "Bring a familiar snack; Thoibi gets restless after 90 minutes.",
+        "created_by": "user-caregiver-1",
+        "created_at": _days_ago(3).isoformat(),
+    },
+]
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Caregiver notes and handover entries.
 CAREGIVER_NOTES: list[dict] = []
 
@@ -720,15 +878,43 @@ def add_notification(target_user_id: str, patient_id: str, message: str, channel
     # For now it just appends to NOTIFICATIONS_LOG and logs to console.
     """
     import sys
+    
+    target_user = get_user_by_id(target_user_id)
+    is_silenced = False
+    
+    if target_user and target_user.get("quiet_hours_start") and target_user.get("quiet_hours_end"):
+        start_str = target_user["quiet_hours_start"]
+        end_str = target_user["quiet_hours_end"]
+        
+        now = _now()
+        current_minutes = now.hour * 60 + now.minute
+        
+        start_parts = start_str.split(":")
+        start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
+        
+        end_parts = end_str.split(":")
+        end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
+        
+        if start_minutes < end_minutes:
+            is_silenced = start_minutes <= current_minutes < end_minutes
+        else:
+            # Over-midnight quiet hours
+            is_silenced = current_minutes >= start_minutes or current_minutes < end_minutes
+            
+    final_message = message
+    if is_silenced:
+        final_message = f"[QUIET HOURS HELD] {message}"
+        
     entry = {
         "id": _uid(),
         "target_user_id": target_user_id,
         "patient_id": patient_id,
-        "message": message,
+        "message": final_message,
         "channel": channel,
         "created_at": _now().isoformat(),
         "read": False,
+        "silenced": is_silenced,
     }
     NOTIFICATIONS_LOG.append(entry)
-    print(f"[SMS SIMULATION] notification queued: {message}", file=sys.stderr)
+    print(f"[SMS SIMULATION] notification queued: {final_message}", file=sys.stderr)
     return entry

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/AuthContext'
-import { getCaregiverLinks, updateCaregiverLink } from '../services/api'
+import { getCaregiverLinks, updateCaregiverLink, getProfile, updateProfile, getRegionalThemes, getMe, updateMe } from '../services/api'
 import { getVoicePack, isTTSSupported, speak } from '../services/voice'
 
 const LANGUAGES = [
@@ -29,10 +29,37 @@ export default function SettingsPage() {
   const [links, setLinks] = useState([])
   const [consentError, setConsentError] = useState('')
   const [voiceStatus, setVoiceStatus] = useState('')
+  const [themes, setThemes] = useState([])
+  const [themeId, setThemeId] = useState('')
+  const [themeStatus, setThemeStatus] = useState('')
+  const [quietStart, setQuietStart] = useState('')
+  const [quietEnd, setQuietEnd] = useState('')
+  const [quietStatus, setQuietStatus] = useState('')
 
   React.useEffect(() => {
     getCaregiverLinks().then(setLinks).catch(() => setConsentError('Unable to load access grants.'))
-  }, [])
+    getRegionalThemes().then((data) => setThemes(data.themes || [])).catch(() => {})
+    
+    if (['caregiver', 'health_worker', 'admin'].includes(user?.role)) {
+      getMe().then(me => {
+        if (me.quiet_hours_start) setQuietStart(me.quiet_hours_start)
+        if (me.quiet_hours_end) setQuietEnd(me.quiet_hours_end)
+      }).catch(() => {})
+    }
+    
+    if (user?.role === 'patient') {
+      getProfile(user.id).then((profile) => setThemeId(profile.theme_preference || '')).catch(() => {})
+    }
+  }, [user?.id, user?.role])
+
+  React.useEffect(() => {
+    const theme = themes.find((item) => item.id === themeId)
+    if (!theme) return
+    Object.entries(theme.colors).forEach(([key, value]) => {
+      const cssKey = key === 'bg' ? '--color-bg' : `--color-${key.replace('_', '-')}`
+      document.documentElement.style.setProperty(cssKey, value)
+    })
+  }, [themes, themeId])
 
   const revokeLink = async (linkId) => {
     setConsentError('')
@@ -64,6 +91,38 @@ export default function SettingsPage() {
   const applyFontSize = (px) => {
     document.documentElement.style.setProperty('--font-size-base', px)
     setFontSize(px)
+  }
+
+  const applyTheme = async (id) => {
+    const theme = themes.find((item) => item.id === id)
+    if (!theme) return
+    Object.entries(theme.colors).forEach(([key, value]) => {
+      const cssKey = key === 'bg' ? '--color-bg' : `--color-${key.replace('_', '-')}`
+      document.documentElement.style.setProperty(cssKey, value)
+    })
+    setThemeId(id)
+    if (user?.role === 'patient') {
+      try {
+        await updateProfile(user.id, { theme_preference: id })
+        localStorage.setItem('theme_preference', id)
+        setThemeStatus('Regional theme saved.')
+      } catch {
+        setThemeStatus('Theme preview applied, but saving failed.')
+      }
+    }
+  }
+
+  const saveQuietHours = async () => {
+    setQuietStatus('')
+    try {
+      await updateMe({ 
+        quiet_hours_start: quietStart || null, 
+        quiet_hours_end: quietEnd || null 
+      })
+      setQuietStatus('Quiet hours saved successfully.')
+    } catch {
+      setQuietStatus('Failed to save quiet hours.')
+    }
   }
 
   return (
@@ -116,6 +175,55 @@ export default function SettingsPage() {
             ))}
           </div>
         </div>
+
+        {user?.role === 'patient' && themes.length > 0 && (
+          <div className="card mb-2">
+            <h3 style={{ marginTop: 0 }}>🎨 Regional theme</h3>
+            <p>Choose a familiar regional colour palette. This changes appearance only.</p>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              {themes.map((theme) => (
+                <button key={theme.id} className={`btn ${themeId === theme.id ? 'btn-primary' : 'btn-outline'} btn-block`}
+                  onClick={() => applyTheme(theme.id)} aria-pressed={themeId === theme.id}>
+                  {theme.label} {themeId === theme.id ? '✓' : ''}
+                </button>
+              ))}
+            </div>
+            {themeStatus && <p role="status">{themeStatus}</p>}
+          </div>
+        )}
+
+        {user && ['caregiver', 'health_worker', 'admin'].includes(user.role) && (
+          <div className="card mb-2">
+            <h3 style={{ marginTop: 0 }}>🔕 Alert Quiet Hours</h3>
+            <p style={{ marginTop: 0, fontSize: '0.9rem' }}>
+              Select a window during which push and SMS alerts will be held until morning.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <label style={{ flex: 1 }}>
+                Start time (HH:MM)
+                <input 
+                  className="input" 
+                  type="time" 
+                  value={quietStart} 
+                  onChange={(e) => setQuietStart(e.target.value)} 
+                />
+              </label>
+              <label style={{ flex: 1 }}>
+                End time (HH:MM)
+                <input 
+                  className="input" 
+                  type="time" 
+                  value={quietEnd} 
+                  onChange={(e) => setQuietEnd(e.target.value)} 
+                />
+              </label>
+            </div>
+            <button className="btn btn-primary btn-block mt-2" onClick={saveQuietHours}>
+              Save quiet hours
+            </button>
+            {quietStatus && <p role="status" style={{ fontSize: '0.9rem', color: 'var(--color-success, #2e7d32)', marginTop: '0.5rem' }}>{quietStatus}</p>}
+          </div>
+        )}
 
         <div className="card mb-2">
           <h3 style={{ marginTop: 0 }}>📋 Data Consent and Access</h3>

@@ -168,6 +168,12 @@ export default function PatientHomePage() {
         <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/daily-living')}>
           📋 My Day
         </button>
+        <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/appointment-prep')}>
+          🏥 Doctor visit prep
+        </button>
+        <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/transport-notes')}>
+          🚗 Transport notes
+        </button>
         <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/mood')}>
           🌙 Sleep & Mood
         </button>

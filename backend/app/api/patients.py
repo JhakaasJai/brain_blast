@@ -17,6 +17,7 @@ from app.mock_data import (
     PATIENT_PROFILES, CAREGIVER_LINKS, AUDIT_LOG, CAREGIVER_NOTES, get_patients_for_user,
     add_audit_entry, USERS_BY_ID,
 )
+from app.api.regional import REGIONAL_THEMES
 
 router = APIRouter(tags=["patients"])
 
@@ -52,6 +53,8 @@ def update_patient_profile(
     profile = PATIENT_PROFILES.get(patient_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Patient profile not found")
+    if body.theme_preference and body.theme_preference not in {theme["id"] for theme in REGIONAL_THEMES}:
+        raise HTTPException(status_code=422, detail="Unknown regional theme")
     for field, value in body.model_dump(exclude_none=True).items():
         profile[field] = value
     add_audit_entry(current_user["id"], patient_id, "update_profile")

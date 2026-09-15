@@ -4,7 +4,7 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, patients, games, reminders, dashboard, voice, notifications, reminiscence, social, daily_living, mood, activity, education
+from app.api import auth, patients, games, reminders, dashboard, voice, notifications, reminiscence, social, daily_living, mood, activity, education, wellbeing, visits, regional, appointments, transport
 
 app = FastAPI(
     title="SIH PS 26003 — Cognitive Gaming & Memory Assistance Platform",
@@ -33,6 +33,11 @@ app.include_router(daily_living.router)
 app.include_router(mood.router)
 app.include_router(activity.router)
 app.include_router(education.router)
+app.include_router(wellbeing.router)
+app.include_router(visits.router)
+app.include_router(regional.router)
+app.include_router(appointments.router)
+app.include_router(transport.router)
 
 
 @app.get("/", tags=["health"])

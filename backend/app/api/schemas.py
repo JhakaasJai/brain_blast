@@ -35,6 +35,15 @@ class UserOut(BaseModel):
     preferred_language: str
     state_region: str
     created_at: str
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    preferred_language: Optional[str] = None
+    quiet_hours_start: Optional[str] = None
+    quiet_hours_end: Optional[str] = None
 
 
 class PatientProfileOut(BaseModel):
@@ -53,6 +62,7 @@ class PatientProfileOut(BaseModel):
     vision_notes: Optional[str] = None
     hearing_notes: Optional[str] = None
     location_sharing_consent: bool = False
+    identification_notes: Optional[str] = None
 
 
 class PatientProfileUpdate(BaseModel):
@@ -68,7 +78,8 @@ class PatientProfileUpdate(BaseModel):
     mobility_notes: Optional[str] = None
     vision_notes: Optional[str] = None
     hearing_notes: Optional[str] = None
-    location_sharing_consent: bool = False
+    location_sharing_consent: Optional[bool] = None
+    identification_notes: Optional[str] = None
 
 
 # ── Medication records ─────────────────────────────────────────────────────────
@@ -305,6 +316,7 @@ class TrendResponse(BaseModel):
     game_type: str
     range_days: int
     points: list[TrendPoint]
+    plain_language_summary: Optional[str] = None
 
 
 # ── Alerts ────────────────────────────────────────────────────────────────────
@@ -491,3 +503,120 @@ class EducationArticleListResponse(BaseModel):
     articles: list[EducationArticleOut]
     progress: dict[str, bool]
     disclaimer: str
+
+
+# ── Caregiver Wellbeing Check-ins ─────────────────────────────────────────────
+
+class CaregiverWellbeingIn(BaseModel):
+    energy_score: int
+    stress_score: int
+    support_needed: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CaregiverWellbeingOut(BaseModel):
+    id: str
+    user_id: str
+    energy_score: int
+    stress_score: int
+    support_needed: Optional[str] = None
+    notes: Optional[str] = None
+    recorded_at: str
+
+
+# ── Health-worker Route / Visit Planning ───────────────────────────────────────
+
+class VisitPlanIn(BaseModel):
+    patient_id: str
+    scheduled_at: str
+    purpose: str
+    location: str
+    notes: Optional[str] = None
+
+
+class VisitPlanUpdate(BaseModel):
+    status: str
+    notes: Optional[str] = None
+
+
+class VisitPlanOut(BaseModel):
+    id: str
+    patient_id: str
+    patient_name: str
+    scheduled_at: str
+    purpose: str
+    location: str
+    notes: Optional[str] = None
+    status: str
+    created_by: str
+    created_at: str
+
+
+# ── Appointment Preparation (R16) ─────────────────────────────────────────────
+
+class AppointmentPrepCreate(BaseModel):
+    patient_id: str
+    appointment_at: str                          # ISO datetime
+    doctor_name: str
+    clinic_or_hospital: str
+    questions_to_ask: list[str] = []            # plain-language questions for doctor
+    items_to_bring: list[str] = []              # e.g. ["ID card", "Previous reports"]
+    transport_notes: Optional[str] = None       # e.g. "Auto from village stand at 9am"
+    extra_notes: Optional[str] = None
+
+
+class AppointmentPrepUpdate(BaseModel):
+    appointment_at: Optional[str] = None
+    doctor_name: Optional[str] = None
+    clinic_or_hospital: Optional[str] = None
+    questions_to_ask: Optional[list[str]] = None
+    items_to_bring: Optional[list[str]] = None
+    transport_notes: Optional[str] = None
+    extra_notes: Optional[str] = None
+
+
+class AppointmentPrepOut(AppointmentPrepCreate):
+    id: str
+    created_by: str
+    created_at: str
+    disclaimer: str = (
+        "This preparation note is an organisational aid only and does not "
+        "constitute medical advice. Discuss all clinical decisions with the patient's doctor."
+    )
+
+
+# ── Appointment Transport / Location Notes (R17) ──────────────────────────────
+
+class TransportNoteCreate(BaseModel):
+    patient_id: str
+    appointment_ref: Optional[str] = None          # free-text or appointment_prep id
+    appointment_at: str                             # ISO datetime of the appointment
+    mode: str                                       # walk | auto | taxi | bus | family_vehicle | ambulance | other
+    pickup_point: str                               # plain-language address / landmark
+    pickup_time: str                                # e.g. "09:30" or ISO datetime
+    driver_or_contact_name: Optional[str] = None   # name of driver / escort
+    driver_or_contact_phone: Optional[str] = None  # phone number (not validated beyond non-empty)
+    destination: str                                # clinic / hospital name + ward
+    estimated_travel_minutes: Optional[int] = None
+    return_notes: Optional[str] = None             # instructions for return journey
+    extra_notes: Optional[str] = None
+
+
+class TransportNoteUpdate(BaseModel):
+    appointment_ref: Optional[str] = None
+    appointment_at: Optional[str] = None
+    mode: Optional[str] = None
+    pickup_point: Optional[str] = None
+    pickup_time: Optional[str] = None
+    driver_or_contact_name: Optional[str] = None
+    driver_or_contact_phone: Optional[str] = None
+    destination: Optional[str] = None
+    estimated_travel_minutes: Optional[int] = None
+    return_notes: Optional[str] = None
+    extra_notes: Optional[str] = None
+
+
+class TransportNoteOut(TransportNoteCreate):
+    id: str
+    created_by: str
+    created_at: str

@@ -1,0 +1,31 @@
+You are an expert Full-Stack Software Architect and Lead Developer. Your objective is to migrate this local, mock-based project into a fully functional, production-ready, and deployable application using a specific zero-cost/free-tier technology stack. 
+
+Please execute this migration in the following strict, step-by-step order. Do not proceed to write actual implementation code until Steps 1 through 4 are complete and I have provided my API keys.
+
+### Step 1: System Audit & Codebase Inspection
+Deeply scan and index the entire workspace. 
+* Analyze the frontend architecture, backend routes, and the current mock database structure.
+* Trace the data flow to understand how features and components are currently interconnected.
+* Identify all hardcoded data, mock API calls, and local-only configurations that will break in a production environment.
+
+### Step 2: Generate a Migration Audit Document
+Based on your inspection, generate a file named `migration_audit.md` in the root directory. This document must include:
+* A feature-by-feature breakdown of the current state vs. the required production state.
+* A specific list of files, functions, and routing logic that must be refactored to support real database connections and live API endpoints.
+* Potential deployment blockers (e.g., CORS issues, missing error handling, local file system dependencies) that need to be resolved.
+
+### Step 3: Propose the New Architecture & Tech Stack
+Output a proposed architecture plan mapping the existing mock features to the following strict free-tier tech stack:
+* **Frontend Hosting:** Vercel (Hobby Tier)
+* **Backend Hosting:** Render (Free Web Service tier)
+* **Database & Authentication:** Supabase (Free Tier - PostgreSQL)
+* **AI & Language Models (LLM, NLM/Translation, TTS/STT):** Bhashini (Free tier Government/Indic language APIs)
+* **Other Essential Services:** Suggest only 100% free platforms for any remaining gaps (e.g., Cloudinary for media storage, Upstash for Redis/caching, or Resend for emails).
+
+### Step 4: Environment Configuration & Credential Setup
+Create an exhaustive `.env.example` file at the root of the project. 
+* Include every environment variable required for the new stack (Vercel, Render, Supabase, Bhashini API keys, etc.).
+* Add clear inline comments explaining exactly what each variable is for and where I can find it in the respective platform's dashboard.
+
+### Next Steps Instruction
+Once you have completed Steps 1 through 4, pause and ask me to provide the actual credentials for the `.env` file. Do not start refactoring the codebase until I have supplied these keys.

@@ -2,13 +2,27 @@
 Auth endpoints: /auth/login, /auth/refresh
 (No real registration in this prototype — accounts are seeded via mock_data.py)
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 
-from app.api.schemas import LoginRequest, TokenResponse, RefreshRequest
+from app.api.dependencies import get_current_user
+from app.api.schemas import LoginRequest, TokenResponse, RefreshRequest, UserOut, UserUpdate
 from app.core.auth import verify_password, create_access_token, create_refresh_token, decode_token
 from app.mock_data import get_user_by_email, get_user_by_id
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/me", response_model=UserOut)
+def get_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(body: UserUpdate, current_user: dict = Depends(get_current_user)):
+    updates = body.model_dump(exclude_none=True)
+    for k, v in updates.items():
+        current_user[k] = v
+    return current_user
 
 
 @router.post("/login", response_model=TokenResponse)

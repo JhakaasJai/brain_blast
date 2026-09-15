@@ -158,7 +158,34 @@ def dashboard_trends(
         )
         for s in sessions
     ]
-    return TrendResponse(patient_id=patient_id, game_type=game_type, range_days=range, points=points)
+
+    summary_text = f"No {game_type} sessions recorded in the last {range} days."
+    if len(points) > 0:
+        avg_acc = sum(p.accuracy for p in points) / len(points)
+        trend_direction = "stable"
+        if len(points) >= 3:
+            first_half = points[:len(points)//2]
+            second_half = points[len(points)//2:]
+            avg_first = sum(p.accuracy for p in first_half) / len(first_half)
+            avg_second = sum(p.accuracy for p in second_half) / len(second_half)
+            if avg_second > avg_first + 5:
+                trend_direction = "improving"
+            elif avg_second < avg_first - 5:
+                trend_direction = "declining"
+        
+        summary_text = (
+            f"Over the last {range} days, accuracy in {game_type} games has been {trend_direction}, "
+            f"averaging {avg_acc:.1f}%. "
+            "This indicates general engagement level and is not a clinical diagnosis."
+        )
+
+    return TrendResponse(
+        patient_id=patient_id, 
+        game_type=game_type, 
+        range_days=range, 
+        points=points,
+        plain_language_summary=summary_text
+    )
 
 
 @router.get("/alerts", response_model=list[AlertOut])

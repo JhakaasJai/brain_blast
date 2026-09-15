@@ -12,7 +12,7 @@ export default function OnboardingPage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     preferred_name: '', theme_preference: 'assam_village', likes: '', dislikes: '',
-    routine_notes: '', mobility_notes: '', vision_notes: '', hearing_notes: '',
+    routine_notes: '', mobility_notes: '', vision_notes: '', hearing_notes: '', identification_notes: ''
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -29,6 +29,7 @@ export default function OnboardingPage() {
       mobility_notes: profile.mobility_notes || '',
       vision_notes: profile.vision_notes || '',
       hearing_notes: profile.hearing_notes || '',
+      identification_notes: profile.identification_notes || '',
     })).catch(() => setError('We could not load the profile. Please try again.'))
       .finally(() => setLoading(false))
   }, [user])
@@ -78,6 +79,11 @@ export default function OnboardingPage() {
           <input id="vision_notes" className="input" value={form.vision_notes} onChange={set('vision_notes')} />
           <label htmlFor="hearing_notes">{t('hearing_notes')}</label>
           <input id="hearing_notes" className="input" value={form.hearing_notes} onChange={set('hearing_notes')} />
+
+          <label htmlFor="identification_notes">Identification markers (for safe wandering)</label>
+          <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>e.g. ID bracelet, usual clothing, distinct features to help others assist them.</p>
+          <textarea id="identification_notes" className="input textarea" value={form.identification_notes} onChange={set('identification_notes')} />
+
           <button className="btn btn-primary btn-block mt-2" disabled={saving}>{saving ? t('saving') : t('save_continue')}</button>
         </form>
       </div>
