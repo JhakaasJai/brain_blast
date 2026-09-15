@@ -12,21 +12,29 @@ Returns a DifficultyResponse-compatible dict.
 # The endpoint contract is identical; swapping in ML is a one-function change here.
 """
 
+from sqlalchemy.orm import Session
+import json
+from app.models import GameSession, PatientProfile
+
 TIER_ORDER = ["easy", "medium", "hard"]
 
+def compute_next_difficulty(patient_id: str, game_type: str, db: Session) -> dict:
+    profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
+    
+    current_tier = "easy"
+    if profile:
+        diffs = {
+            "memory": profile.difficulty_memory,
+            "attention": profile.difficulty_attention,
+            "routine": profile.difficulty_routine,
+            "recognition": profile.difficulty_recognition
+        }
+        current_tier = diffs.get(game_type, "easy")
 
-def compute_next_difficulty(patient_id: str, game_type: str) -> dict:
-    from app.mock_data import GAME_SESSIONS, PATIENT_PROFILES
-
-    profile = PATIENT_PROFILES.get(patient_id)
-    current_tier = (profile or {}).get("current_difficulty", {}).get(game_type, "easy")
-
-    # Filter sessions for this patient + game type, sorted newest first
-    sessions = sorted(
-        [s for s in GAME_SESSIONS if s["patient_id"] == patient_id and s["game_type"] == game_type],
-        key=lambda s: s["completed_at"],
-        reverse=True,
-    )
+    sessions = db.query(GameSession).filter(
+        GameSession.patient_id == patient_id,
+        GameSession.game_type == game_type
+    ).order_by(GameSession.completed_at.desc()).all()
 
     if len(sessions) < 3:
         return {
@@ -36,12 +44,12 @@ def compute_next_difficulty(patient_id: str, game_type: str) -> dict:
             "next_tier": current_tier,
             "decision_source": "rule",
             "reason": f"Fewer than 3 sessions ({len(sessions)}) — holding tier",
-            "inputs": {"session_count": len(sessions), "last_3_accuracy": []},
+            "inputs": json.dumps({"session_count": len(sessions), "last_3_accuracy": []}),
         }
 
     last_3 = sessions[:3]
-    avg_accuracy = sum(s["accuracy"] for s in last_3) / 3
-    last_3_acc = [s["accuracy"] for s in last_3]
+    avg_accuracy = sum(s.accuracy_pct for s in last_3) / 3
+    last_3_acc = [s.accuracy_pct for s in last_3]
 
     current_idx = TIER_ORDER.index(current_tier)
 
@@ -62,9 +70,9 @@ def compute_next_difficulty(patient_id: str, game_type: str) -> dict:
         "next_tier": next_tier,
         "decision_source": "rule",
         "reason": reason,
-        "inputs": {
+        "inputs": json.dumps({
             "session_count": len(sessions),
             "last_3_accuracy": last_3_acc,
             "avg_accuracy": round(avg_accuracy, 1),
-        },
+        }),
     }

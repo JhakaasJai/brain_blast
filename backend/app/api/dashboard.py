@@ -1,50 +1,38 @@
-"""
-Dashboard aggregation endpoints.
-"""
 from datetime import datetime, timezone, timedelta
 import csv
 import io
-import json
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
+from app.core.db import get_db
 from app.api.dependencies import get_current_user
-from app.api.schemas import DashboardSummary, TrendResponse, TrendPoint, AlertOut, CareSummaryOut, SummaryExportOut
-from app.mock_data import (
-    GAME_SESSIONS, REMINDER_EVENTS, REMINDERS, ALERTS,
-    USERS_BY_ID, get_patients_for_user, add_audit_entry,
+from app.core.crud import get_patients_for_user, add_audit_entry
+from app.models import (
+    GameSession, Reminder, ReminderEvent, Alert, PatientProfile, User, Medication
 )
+from app.api.schemas import DashboardSummary, TrendResponse, TrendPoint, AlertOut, CareSummaryOut, SummaryExportOut
 
 router = APIRouter(tags=["dashboard"])
 
-
-def _assert_access(current_user: dict, patient_id: str):
-    if patient_id not in get_patients_for_user(current_user):
+def _assert_access(current_user: dict, patient_id: str, db: Session):
+    if patient_id not in get_patients_for_user(current_user, db):
         raise HTTPException(status_code=403, detail="Not authorised")
 
 
 @router.get("/dashboard/{patient_id}/summary", response_model=DashboardSummary)
-def dashboard_summary(patient_id: str, current_user: dict = Depends(get_current_user)):
-    _assert_access(current_user, patient_id)
-    add_audit_entry(current_user["id"], patient_id, "read_dashboard_summary")
+def dashboard_summary(patient_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    _assert_access(current_user, patient_id, db)
+    add_audit_entry(db, current_user["id"], patient_id, "read_dashboard_summary")
 
-    patient_sessions = [s for s in GAME_SESSIONS if s["patient_id"] == patient_id]
+    patient_sessions = db.query(GameSession).filter(GameSession.patient_id == patient_id).order_by(GameSession.completed_at.desc()).all()
     now = datetime.now(timezone.utc)
     cutoff_7d = now - timedelta(days=7)
 
-    sessions_7d = [
-        s for s in patient_sessions
-        if datetime.fromisoformat(s["completed_at"]) > cutoff_7d
-    ]
-    avg_acc_7d = (
-        sum(s["accuracy"] for s in sessions_7d) / len(sessions_7d)
-        if sessions_7d else 0.0
-    )
+    sessions_7d = [s for s in patient_sessions if s.completed_at > cutoff_7d]
+    avg_acc_7d = sum(s.accuracy_pct for s in sessions_7d) / len(sessions_7d) if sessions_7d else 0.0
 
-    # streak: count consecutive days with at least one session
-    session_dates = sorted(set(
-        datetime.fromisoformat(s["completed_at"]).date()
-        for s in patient_sessions
-    ), reverse=True)
+    session_dates = sorted(set(s.completed_at.date() for s in patient_sessions), reverse=True)
     streak = 0
     check_date = now.date()
     for d in session_dates:
@@ -54,71 +42,88 @@ def dashboard_summary(patient_id: str, current_user: dict = Depends(get_current_
         else:
             break
 
-    # reminder adherence
-    patient_rem_ids = {r["id"] for r in REMINDERS if r["patient_id"] == patient_id}
-    patient_events = [e for e in REMINDER_EVENTS if e["reminder_id"] in patient_rem_ids]
-    done_count = sum(1 for e in patient_events if e["action"] == "done")
-    adherence = (done_count / len(patient_events) * 100) if patient_events else 100.0
+    reminders = db.query(Reminder).filter(Reminder.patient_id == patient_id).all()
+    rem_ids = [r.id for r in reminders]
+    events = db.query(ReminderEvent).filter(ReminderEvent.reminder_id.in_(rem_ids)).all()
+    
+    done_count = sum(1 for e in events if e.status == "completed")
+    adherence = (done_count / len(events) * 100) if events else 100.0
 
-    last_session_at = (
-        max(s["completed_at"] for s in patient_sessions)
-        if patient_sessions else None
-    )
+    last_session_at = patient_sessions[0].completed_at if patient_sessions else None
     inactivity_h = 0.0
     if last_session_at:
-        last_dt = datetime.fromisoformat(last_session_at)
-        if last_dt.tzinfo is None:
-            last_dt = last_dt.replace(tzinfo=timezone.utc)
-        inactivity_h = (now - last_dt).total_seconds() / 3600
+        inactivity_h = (now - last_session_at).total_seconds() / 3600
 
-    from app.mock_data import PATIENT_PROFILES
-    profile = PATIENT_PROFILES.get(patient_id, {})
-    user = USERS_BY_ID.get(patient_id, {})
+    profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
+    user = db.query(User).filter(User.id == patient_id).first()
+
+    diffs = {}
+    if profile:
+        diffs = {
+            "memory": profile.difficulty_memory,
+            "attention": profile.difficulty_attention,
+            "routine": profile.difficulty_routine,
+            "recognition": profile.difficulty_recognition
+        }
 
     return DashboardSummary(
         patient_id=patient_id,
-        patient_name=user.get("name", "Unknown"),
+        patient_name=user.name if user else "Unknown",
         total_sessions=len(patient_sessions),
         sessions_last_7_days=len(sessions_7d),
         streak_days=streak,
         avg_accuracy_last_7_days=round(avg_acc_7d, 1),
         reminder_adherence_pct=round(adherence, 1),
-        last_session_at=last_session_at,
+        last_session_at=str(last_session_at) if last_session_at else None,
         inactivity_hours=round(inactivity_h, 1),
-        current_difficulty=profile.get("current_difficulty", {}),
+        current_difficulty=diffs,
     )
 
 
 @router.get("/dashboard/{patient_id}/care-summary", response_model=CareSummaryOut)
-def care_summary(patient_id: str, period_days: int = 30, current_user: dict = Depends(get_current_user)):
-    _assert_access(current_user, patient_id)
+def care_summary(patient_id: str, period_days: int = 30, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    _assert_access(current_user, patient_id, db)
     period_days = max(1, min(period_days, 365))
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=period_days)
-    sessions = [s for s in GAME_SESSIONS if s["patient_id"] == patient_id and datetime.fromisoformat(s["completed_at"]) >= cutoff]
-    rem_ids = {r["id"] for r in REMINDERS if r["patient_id"] == patient_id}
-    events = [e for e in REMINDER_EVENTS if e["reminder_id"] in rem_ids and datetime.fromisoformat(e["fired_at"]) >= cutoff]
-    medications = [m for m in __import__("app.mock_data", fromlist=["MEDICATIONS"]).MEDICATIONS if m["patient_id"] == patient_id]
-    user = USERS_BY_ID.get(patient_id, {})
-    profile = __import__("app.mock_data", fromlist=["PATIENT_PROFILES"]).PATIENT_PROFILES.get(patient_id, {})
+    
+    sessions = db.query(GameSession).filter(GameSession.patient_id == patient_id, GameSession.completed_at >= cutoff).all()
+    
+    reminders = db.query(Reminder).filter(Reminder.patient_id == patient_id).all()
+    rem_ids = [r.id for r in reminders]
+    events = db.query(ReminderEvent).filter(ReminderEvent.reminder_id.in_(rem_ids), ReminderEvent.scheduled_time >= cutoff).all()
+    
+    medications = db.query(Medication).filter(Medication.patient_id == patient_id).all()
+    user = db.query(User).filter(User.id == patient_id).first()
+    profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
+    
+    diffs = {}
+    if profile:
+        diffs = {
+            "memory": profile.difficulty_memory,
+            "attention": profile.difficulty_attention,
+            "routine": profile.difficulty_routine,
+            "recognition": profile.difficulty_recognition
+        }
+        
     summary = CareSummaryOut(
         patient_id=patient_id,
-        patient_name=user.get("name", "Unknown"),
+        patient_name=user.name if user else "Unknown",
         generated_at=now.isoformat(),
         period_days=period_days,
-        activity={"sessions": len(sessions), "average_accuracy": round(sum(s["accuracy"] for s in sessions) / len(sessions), 1) if sessions else 0.0},
-        reminders={"total_events": len(events), "done": sum(e["action"] == "done" for e in events), "snoozed": sum(e["action"] == "snoozed" for e in events), "missed": sum(e["action"] == "missed" for e in events)},
-        current_difficulty=profile.get("current_difficulty", {}),
-        medications=medications,
+        activity={"sessions": len(sessions), "average_accuracy": round(sum(s.accuracy_pct for s in sessions) / len(sessions), 1) if sessions else 0.0},
+        reminders={"total_events": len(events), "done": sum(e.status == "completed" for e in events), "snoozed": 0, "missed": sum(e.status == "missed" for e in events)},
+        current_difficulty=diffs,
+        medications=[m.__dict__ for m in medications],
         disclaimer="This is an activity and care-support summary, not a diagnostic report or medical advice.",
     )
-    add_audit_entry(current_user["id"], patient_id, "export_care_summary")
+    add_audit_entry(db, current_user["id"], patient_id, "export_care_summary")
     return summary
 
 
 @router.get("/dashboard/{patient_id}/care-summary.csv", response_model=SummaryExportOut)
-def export_care_summary_csv(patient_id: str, period_days: int = 30, current_user: dict = Depends(get_current_user)):
-    summary = care_summary(patient_id, period_days, current_user)
+def export_care_summary_csv(patient_id: str, period_days: int = 30, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    summary = care_summary(patient_id, period_days, current_user, db)
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(["section", "field", "value"])
@@ -136,25 +141,24 @@ def dashboard_trends(
     game_type: str = "memory",
     range: int = 30,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    _assert_access(current_user, patient_id)
-    add_audit_entry(current_user["id"], patient_id, f"read_trends_{game_type}")
+    _assert_access(current_user, patient_id, db)
+    add_audit_entry(db, current_user["id"], patient_id, f"read_trends_{game_type}")
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=range)
-    sessions = [
-        s for s in GAME_SESSIONS
-        if s["patient_id"] == patient_id
-        and s["game_type"] == game_type
-        and datetime.fromisoformat(s["completed_at"]) > cutoff
-    ]
-    sessions.sort(key=lambda s: s["completed_at"])
+    sessions = db.query(GameSession).filter(
+        GameSession.patient_id == patient_id,
+        GameSession.game_type == game_type,
+        GameSession.completed_at > cutoff
+    ).order_by(GameSession.completed_at).all()
 
     points = [
         TrendPoint(
-            date=s["completed_at"][:10],
-            score=s["score"],
-            accuracy=s["accuracy"],
-            difficulty=s["difficulty"],
+            date=str(s.completed_at)[:10],
+            score=s.score,
+            accuracy=s.accuracy_pct,
+            difficulty=s.difficulty,
         )
         for s in sessions
     ]
@@ -193,25 +197,47 @@ def list_alerts(
     patient_id: str | None = None,
     status: str | None = None,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    allowed = get_patients_for_user(current_user)
-    results = [a for a in ALERTS if a["patient_id"] in allowed]
+    allowed = get_patients_for_user(current_user, db)
+    query = db.query(Alert).filter(Alert.patient_id.in_(allowed))
+    
     if patient_id:
-        results = [a for a in results if a["patient_id"] == patient_id]
+        query = query.filter(Alert.patient_id == patient_id)
+        
     if status == "open":
-        results = [a for a in results if not a["resolved"]]
+        query = query.filter(Alert.resolved == False)
     elif status == "resolved":
-        results = [a for a in results if a["resolved"]]
+        query = query.filter(Alert.resolved == True)
+        
+    alerts = query.all()
     enriched = []
-    for alert in results:
-        item = dict(alert)
-        if alert["type"] == "inactivity":
-            item["explanation"] = "No completed game session was recorded during the configured inactivity window."
-            item["observed_threshold"] = "48 hours without a completed game session"
-            item["next_step"] = "Check in with the patient; this is not a diagnosis or emergency determination."
-        elif alert["type"] == "missed_reminder":
-            item["explanation"] = "A reminder event was marked missed."
-            item["observed_threshold"] = "One missed reminder event"
-            item["next_step"] = "Check the routine and contact the patient if support is needed."
+    
+    for alert in alerts:
+        item = {
+            "id": str(alert.id),
+            "patient_id": str(alert.patient_id),
+            "type": alert.type,
+            "triggered_at": str(alert.triggered_at),
+            "channel": alert.channel,
+            "delivered": alert.delivered,
+            "resolved": alert.resolved,
+            "simulation_label": alert.simulation_label,
+            "explanation": alert.explanation,
+            "observed_threshold": alert.observed_threshold,
+            "next_step": alert.next_step
+        }
+        
+        if not item.get("explanation"):
+            if alert.type == "inactivity":
+                item["explanation"] = "No completed game session was recorded during the configured inactivity window."
+                item["observed_threshold"] = "48 hours without a completed game session"
+                item["next_step"] = "Check in with the patient; this is not a diagnosis or emergency determination."
+            elif alert.type == "missed_reminder":
+                item["explanation"] = "A reminder event was marked missed."
+                item["observed_threshold"] = "One missed reminder event"
+                item["next_step"] = "Check the routine and contact the patient if support is needed."
+                
         enriched.append(item)
+        
     return enriched

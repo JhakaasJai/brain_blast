@@ -8,12 +8,14 @@ Patients can read their own preparation notes (read-only, simplified view).
 """
 import uuid
 from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
+from app.core.db import get_db
 from app.api.dependencies import get_current_user
+from app.core.crud import get_patients_for_user, add_audit_entry
+from app.models import AppointmentPrep
 from app.api.schemas import AppointmentPrepCreate, AppointmentPrepOut, AppointmentPrepUpdate
-from app.mock_data import APPOINTMENT_PREPS, add_audit_entry, get_patients_for_user
 
 router = APIRouter(tags=["appointment-preparation"])
 
@@ -23,8 +25,7 @@ _DISCLAIMER = (
     "constitute medical advice. Discuss all clinical decisions with the patient's doctor."
 )
 
-
-def _require_patient_access(patient_id: str, user: dict) -> None:
+def _require_patient_access(patient_id: str, user: dict, db: Session) -> None:
     """Raise 403 if user cannot see this patient's prep notes."""
     if user["role"] == "patient":
         if user["id"] != patient_id:
@@ -32,10 +33,9 @@ def _require_patient_access(patient_id: str, user: dict) -> None:
         return
     if user["role"] not in _CARE_TEAM_ROLES:
         raise HTTPException(status_code=403, detail="Care-team access required")
-    allowed = get_patients_for_user(user)
+    allowed = get_patients_for_user(user, db)
     if patient_id not in allowed:
         raise HTTPException(status_code=403, detail="Patient is outside your care scope")
-
 
 def _require_care_team(user: dict) -> None:
     if user["role"] not in _CARE_TEAM_ROLES:
@@ -45,27 +45,23 @@ def _require_care_team(user: dict) -> None:
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/patients/{patient_id}/appointment-prep", response_model=list[AppointmentPrepOut])
-def list_appointment_preps(patient_id: str, current_user: dict = Depends(get_current_user)):
-    """List all appointment preparation notes for a patient, newest first."""
-    _require_patient_access(patient_id, current_user)
-    add_audit_entry(current_user["id"], patient_id, "read_appointment_preps")
-    rows = [r for r in APPOINTMENT_PREPS if r["patient_id"] == patient_id]
-    return sorted(rows, key=lambda r: r["appointment_at"], reverse=True)
+def list_appointment_preps(patient_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    _require_patient_access(patient_id, current_user, db)
+    add_audit_entry(db, current_user["id"], patient_id, "read_appointment_preps")
+    rows = db.query(AppointmentPrep).filter(AppointmentPrep.patient_id == patient_id).order_by(AppointmentPrep.appointment_at.desc()).all()
+    return rows
 
 
 @router.get("/patients/{patient_id}/appointment-prep/next", response_model=AppointmentPrepOut | None)
-def get_next_appointment_prep(patient_id: str, current_user: dict = Depends(get_current_user)):
-    """Return the preparation note for the soonest upcoming appointment (or None)."""
-    _require_patient_access(patient_id, current_user)
-    add_audit_entry(current_user["id"], patient_id, "read_next_appointment_prep")
+def get_next_appointment_prep(patient_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    _require_patient_access(patient_id, current_user, db)
+    add_audit_entry(db, current_user["id"], patient_id, "read_next_appointment_prep")
     now_iso = datetime.now(timezone.utc).isoformat()
-    upcoming = [
-        r for r in APPOINTMENT_PREPS
-        if r["patient_id"] == patient_id and r["appointment_at"] >= now_iso
-    ]
-    if not upcoming:
-        return None
-    return min(upcoming, key=lambda r: r["appointment_at"])
+    upcoming = db.query(AppointmentPrep).filter(
+        AppointmentPrep.patient_id == patient_id, 
+        AppointmentPrep.appointment_at >= now_iso
+    ).order_by(AppointmentPrep.appointment_at.asc()).first()
+    return upcoming
 
 
 @router.post("/patients/{patient_id}/appointment-prep", response_model=AppointmentPrepOut, status_code=201)
@@ -73,10 +69,10 @@ def create_appointment_prep(
     patient_id: str,
     body: AppointmentPrepCreate,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """Create a new appointment preparation note (care-team only)."""
     _require_care_team(current_user)
-    _require_patient_access(patient_id, current_user)
+    _require_patient_access(patient_id, current_user, db)
     if body.patient_id != patient_id:
         raise HTTPException(status_code=422, detail="patient_id in body must match path parameter")
     if not body.doctor_name.strip():
@@ -86,22 +82,24 @@ def create_appointment_prep(
     if not body.appointment_at.strip():
         raise HTTPException(status_code=422, detail="appointment_at is required")
 
-    row = {
-        "id": str(uuid.uuid4()),
-        "patient_id": patient_id,
-        "appointment_at": body.appointment_at,
-        "doctor_name": body.doctor_name.strip(),
-        "clinic_or_hospital": body.clinic_or_hospital.strip(),
-        "questions_to_ask": body.questions_to_ask,
-        "items_to_bring": body.items_to_bring,
-        "transport_notes": body.transport_notes,
-        "extra_notes": body.extra_notes,
-        "created_by": current_user["id"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "disclaimer": _DISCLAIMER,
-    }
-    APPOINTMENT_PREPS.append(row)
-    add_audit_entry(current_user["id"], patient_id, "created_appointment_prep")
+    row = AppointmentPrep(
+        id=uuid.uuid4(),
+        patient_id=patient_id,
+        appointment_at=body.appointment_at,
+        doctor_name=body.doctor_name.strip(),
+        clinic_or_hospital=body.clinic_or_hospital.strip(),
+        questions_to_ask=body.questions_to_ask,
+        items_to_bring=body.items_to_bring,
+        transport_notes=body.transport_notes,
+        extra_notes=body.extra_notes,
+        created_by=current_user["id"],
+        created_at=datetime.now(timezone.utc),
+        disclaimer=_DISCLAIMER,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    add_audit_entry(db, current_user["id"], patient_id, "created_appointment_prep")
     return row
 
 
@@ -111,16 +109,18 @@ def update_appointment_prep(
     prep_id: str,
     body: AppointmentPrepUpdate,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """Update fields on an existing appointment preparation note (care-team only)."""
     _require_care_team(current_user)
-    _require_patient_access(patient_id, current_user)
-    row = next((r for r in APPOINTMENT_PREPS if r["id"] == prep_id and r["patient_id"] == patient_id), None)
-    if row is None:
+    _require_patient_access(patient_id, current_user, db)
+    row = db.query(AppointmentPrep).filter(AppointmentPrep.id == prep_id, AppointmentPrep.patient_id == patient_id).first()
+    if not row:
         raise HTTPException(status_code=404, detail="Appointment prep note not found")
     for field, value in body.model_dump(exclude_none=True).items():
-        row[field] = value
-    add_audit_entry(current_user["id"], patient_id, "updated_appointment_prep")
+        setattr(row, field, value)
+    db.commit()
+    db.refresh(row)
+    add_audit_entry(db, current_user["id"], patient_id, "updated_appointment_prep")
     return row
 
 
@@ -129,16 +129,16 @@ def delete_appointment_prep(
     patient_id: str,
     prep_id: str,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    """Delete an appointment preparation note (care-team only)."""
     _require_care_team(current_user)
-    _require_patient_access(patient_id, current_user)
-    row = next((r for r in APPOINTMENT_PREPS if r["id"] == prep_id and r["patient_id"] == patient_id), None)
-    if row is None:
+    _require_patient_access(patient_id, current_user, db)
+    row = db.query(AppointmentPrep).filter(AppointmentPrep.id == prep_id, AppointmentPrep.patient_id == patient_id).first()
+    if not row:
         raise HTTPException(status_code=404, detail="Appointment prep note not found")
-    APPOINTMENT_PREPS.remove(row)
-    add_audit_entry(current_user["id"], patient_id, "deleted_appointment_prep")
+    db.delete(row)
+    db.commit()
+    add_audit_entry(db, current_user["id"], patient_id, "deleted_appointment_prep")
     return None
-
 
 __all__ = ["router"]

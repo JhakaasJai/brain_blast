@@ -6,80 +6,109 @@ PRODUCTION: swap SOCIAL_MESSAGES for a DB table + FCM/SMS per send.
 """
 import uuid
 from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
+from app.core.db import get_db
 from app.api.dependencies import get_current_user
 from app.api.schemas import SocialMessageIn, SocialMessageOut
-from app.mock_data import (
-    SOCIAL_MESSAGES,
-    USERS_BY_ID,
-    get_patients_for_user,
-    add_notification,
-    CAREGIVER_LINKS,
-)
+from app.models import SocialMessage, User, CaregiverLink, Notification
+from app.core.crud import get_patients_for_user
 
 router = APIRouter(tags=["social"])
 
+def _add_notification(db: Session, target_user_id: str, message: str, channel: str = "in_app"):
+    n = Notification(
+        id=uuid.uuid4(),
+        user_id=target_user_id,
+        target_user_id=target_user_id,
+        message=message,
+        channel=channel,
+        read=False,
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(n)
 
-@router.get("/patients/{patient_id}/messages",
-            response_model=list[SocialMessageOut])
+@router.get("/patients/{patient_id}/messages", response_model=list[SocialMessageOut])
 def list_messages(
     patient_id: str,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    allowed = get_patients_for_user(current_user)
+    allowed = get_patients_for_user(current_user, db)
     if patient_id not in allowed:
         raise HTTPException(status_code=403, detail="Not authorised")
-    msgs = [m for m in SOCIAL_MESSAGES if m["patient_id"] == patient_id]
-    # Return chronological order
-    return sorted(msgs, key=lambda m: m["sent_at"])
+        
+    messages = db.query(SocialMessage).filter(SocialMessage.patient_id == patient_id).order_by(SocialMessage.sent_at.asc()).all()
+    
+    # We need to map sender_name and sender_role for the response model
+    result = []
+    for m in messages:
+        sender = db.query(User).filter(User.id == m.sender_id).first()
+        result.append({
+            "id": str(m.id),
+            "patient_id": str(m.patient_id),
+            "sender_id": str(m.sender_id),
+            "sender_name": sender.name if sender else "Unknown",
+            "sender_role": sender.role if sender else "Unknown",
+            "message_text": m.message_text,
+            "sent_at": m.sent_at.isoformat() if hasattr(m.sent_at, 'isoformat') else m.sent_at,
+        })
+        
+    return result
 
-
-@router.post("/patients/{patient_id}/messages",
-             response_model=SocialMessageOut, status_code=201)
+@router.post("/patients/{patient_id}/messages", response_model=SocialMessageOut, status_code=201)
 def send_message(
     patient_id: str,
     body: SocialMessageIn,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    # Sender must be themselves
     if current_user["id"] != body.sender_id:
         raise HTTPException(status_code=403, detail="sender_id must match authenticated user")
-    allowed = get_patients_for_user(current_user)
+    allowed = get_patients_for_user(current_user, db)
     if patient_id not in allowed:
         raise HTTPException(status_code=403, detail="Not authorised")
 
-    sender = USERS_BY_ID.get(current_user["id"], {})
-    msg = {
-        "id": str(uuid.uuid4()),
-        "patient_id": patient_id,
-        "sender_id": current_user["id"],
-        "sender_name": sender.get("name", "Unknown"),
-        "sender_role": current_user["role"],
-        "message_text": body.message_text,
-        "sent_at": datetime.now(timezone.utc).isoformat(),
-    }
-    SOCIAL_MESSAGES.append(msg)
+    sender = db.query(User).filter(User.id == current_user["id"]).first()
+    
+    msg = SocialMessage(
+        id=uuid.uuid4(),
+        patient_id=patient_id,
+        sender_id=current_user["id"],
+        message_text=body.message_text,
+        sent_at=datetime.now(timezone.utc)
+    )
+    db.add(msg)
 
-    # Simulate notification to the other party
-    # If patient sent, notify all linked caregivers; if caregiver sent, notify patient
+    # Simulate notification
+    sender_name = sender.name if sender else ("your caregiver" if current_user["role"] != "patient" else "patient")
     if current_user["role"] == "patient":
-        linked = [lk["caregiver_id"] for lk in CAREGIVER_LINKS
-                  if lk["patient_id"] == patient_id and lk["status"] == "active"]
-        for cg_id in linked:
-            add_notification(
-                target_user_id=cg_id,
-                patient_id=patient_id,
-                message=f"[SOCIAL] New message from {sender.get('name','patient')}: {body.message_text[:60]}",
+        linked = db.query(CaregiverLink).filter(CaregiverLink.patient_id == patient_id, CaregiverLink.status == "active").all()
+        for cg in linked:
+            _add_notification(
+                db=db,
+                target_user_id=str(cg.caregiver_id),
+                message=f"[SOCIAL] New message from {sender_name}: {body.message_text[:60]}",
                 channel="in_app",
             )
     else:
-        add_notification(
+        _add_notification(
+            db=db,
             target_user_id=patient_id,
-            patient_id=patient_id,
-            message=f"[SOCIAL] Message from {sender.get('name','your caregiver')}: {body.message_text[:60]}",
+            message=f"[SOCIAL] Message from {sender_name}: {body.message_text[:60]}",
             channel="in_app",
         )
 
-    return msg
+    db.commit()
+    db.refresh(msg)
+    
+    return {
+        "id": str(msg.id),
+        "patient_id": str(msg.patient_id),
+        "sender_id": str(msg.sender_id),
+        "sender_name": sender.name if sender else "Unknown",
+        "sender_role": current_user["role"],
+        "message_text": msg.message_text,
+        "sent_at": msg.sent_at.isoformat() if hasattr(msg.sent_at, 'isoformat') else msg.sent_at,
+    }
