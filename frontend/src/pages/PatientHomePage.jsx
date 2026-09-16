@@ -107,9 +107,9 @@ export default function PatientHomePage() {
         </p>
         <MedicalDisclaimer />
 
-        <section className="card" aria-labelledby="audio-guide-title">
+        <section className="patient-priority-card" aria-labelledby="audio-guide-title" style={{ marginTop: '2rem' }}>
           <h3 id="audio-guide-title" style={{ marginTop: 0 }}>🔊 Audio guide</h3>
-          <p style={{ marginTop: 0 }}>Listen to this page and hear where each choice will take you.</p>
+          <p style={{ marginTop: 0, fontSize: '1.1rem', color: 'var(--color-text-secondary)' }}>Listen to this page and hear where each choice will take you.</p>
           <div className="grid-2">
             <button className="btn btn-primary btn-block" onClick={readPage}>
               ▶ Read this page
@@ -118,7 +118,7 @@ export default function PatientHomePage() {
               ■ Stop audio
             </button>
           </div>
-          {audioStatus && <p role="status" style={{ marginBottom: 0 }}>{audioStatus}</p>}
+          {audioStatus && <p role="status" style={{ marginBottom: 0, marginTop: '1rem', fontWeight: 600 }}>{audioStatus}</p>}
         </section>
 
         <section aria-labelledby="today-title" className="patient-priority-card">
@@ -129,7 +129,7 @@ export default function PatientHomePage() {
           </button>
         </section>
 
-        <h3 style={{ marginBottom: '0.75rem' }}>{t('play')}</h3>
+        <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem', marginTop: '2rem' }}>{t('play')}</h3>
         <div className="grid-2" aria-label="Activities">
           {GAMES.map((g) => (
             <button key={g.key} className="game-tile"
@@ -144,7 +144,7 @@ export default function PatientHomePage() {
           ))}
         </div>
 
-        <h3 className="mt-3" style={{ marginBottom: '0.75rem' }}>Help and routine</h3>
+        <h3 className="mt-3" style={{ marginBottom: '1rem', fontSize: '1.5rem', marginTop: '2rem' }}>Help and routine</h3>
         <div className="patient-actions grid-2">
           <button className="btn btn-outline btn-block" onClick={() => navigate('/reminders')}>
             🔔 {t('reminders')}
@@ -159,15 +159,15 @@ export default function PatientHomePage() {
             📞 Emergency help
           </button>
         </div>
-        <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/reminiscence')}>
-          🧓 Memory Lane
-        </button>
-        <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/social')}>
-          💬 Messages
-        </button>
-        <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/daily-living')}>
-          📋 My Day
-        </button>
+          <button className="btn btn-outline btn-block mt-2" style={{ padding: '1.25rem', fontSize: '1.2rem' }} onClick={() => navigate('/reminiscence')}>
+            🧓 Memory Lane
+          </button>
+          <button className="btn btn-outline btn-block mt-2" style={{ padding: '1.25rem', fontSize: '1.2rem' }} onClick={() => navigate('/social')}>
+            💬 Messages
+          </button>
+          <button className="btn btn-outline btn-block mt-2" style={{ padding: '1.25rem', fontSize: '1.2rem' }} onClick={() => navigate('/daily-living')}>
+            📋 My Day
+          </button>
         <button className="btn btn-outline btn-block mt-2" onClick={() => navigate('/appointment-prep')}>
           🏥 Doctor visit prep
         </button>
