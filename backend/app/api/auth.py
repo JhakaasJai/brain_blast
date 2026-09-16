@@ -92,11 +92,18 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
     
     if resend.api_key:
         try:
+            # Resend sandbox requires testing against the verified owner email
+            # We override 'to' strictly for development/sandbox, but log the real target
+            target_email = body.email
+            if target_email != "namdeomritunjay@gmail.com" and not os.getenv("RESEND_DOMAIN_VERIFIED"):
+                print(f"Sandbox Mode: Redirecting email meant for {target_email} to verified sandbox address.")
+                target_email = "namdeomritunjay@gmail.com"
+                
             resend.Emails.send({
                 "from": "onboarding@resend.dev",
-                "to": body.email,
+                "to": target_email,
                 "subject": "Verify your Brain Blast account",
-                "html": f'<p>Welcome to Brain Blast!</p><p>Please click <a href="{verify_link}">here</a> to verify your account.</p>'
+                "html": f'<p>Welcome to Brain Blast!</p><p>Please click <a href="{verify_link}">here</a> to verify your account.</p><p><small>Original intended recipient: {body.email}</small></p>'
             })
         except Exception as e:
             print(f"Error sending email: {e}")
