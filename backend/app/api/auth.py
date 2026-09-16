@@ -4,7 +4,7 @@ Auth endpoints: /auth/login, /auth/refresh, /auth/register
 import uuid
 import re
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -30,7 +30,7 @@ def is_valid_password(password: str) -> bool:
     return True
 
 @router.post("/register", status_code=201)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+def register(body: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     if not is_valid_password(body.password):
         raise HTTPException(
             status_code=400, 
@@ -76,7 +76,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         expires_delta=timedelta(hours=24)
     )
     
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    # Intelligently resolve the frontend URL based on the request origin
+    frontend_url = os.getenv("FRONTEND_URL") or request.headers.get("origin") or request.headers.get("referer", "").rstrip("/") or "http://localhost:3000"
     verify_link = f"{frontend_url}/verify-email?token={verify_token}"
     
     if resend.api_key:
