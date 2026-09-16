@@ -43,15 +43,18 @@ class RefreshRequest(BaseModel):
 # ── Users / Profile ───────────────────────────────────────────────────────────
 
 class UserOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
+    email: str
     role: str
     name: str
-    phone: str
-    preferred_language: str
-    state_region: str
+    phone: Optional[str] = None
+    preferred_language: Optional[str] = None
+    state_region: Optional[str] = None
     created_at: str
     quiet_hours_start: Optional[str] = None
     quiet_hours_end: Optional[str] = None
+    is_verified: Optional[bool] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -62,6 +65,7 @@ class UserUpdate(BaseModel):
 
 
 class PatientProfileOut(BaseModel):
+    model_config = {"from_attributes": True}
     user_id: str
     dob_or_age: Optional[int] = None
     dementia_stage_note: Optional[str] = None
@@ -161,6 +165,7 @@ class CaregiverLinkCreate(BaseModel):
 
 
 class CaregiverLinkOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     caregiver_id: str
     patient_id: str
@@ -173,6 +178,7 @@ class CaregiverLinkPatch(BaseModel):
 
 
 class AuditEntryOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     actor_id: str
     patient_id: str
@@ -245,6 +251,7 @@ class ReminderUpdate(BaseModel):
 
 
 class ReminderOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     category: str
@@ -274,6 +281,7 @@ class ReminderOut(BaseModel):
 
 
 class ReminderEscalationOut(BaseModel):
+    model_config = {"from_attributes": True}
     reminder_id: str
     patient_id: str
     escalated: bool
@@ -333,6 +341,7 @@ class DashboardSummary(BaseModel):
 
 
 class CareSummaryOut(BaseModel):
+    model_config = {"from_attributes": True}
     patient_id: str
     patient_name: str
     generated_at: str
@@ -345,6 +354,7 @@ class CareSummaryOut(BaseModel):
 
 
 class SummaryExportOut(BaseModel):
+    model_config = {"from_attributes": True}
     filename: str
     content_type: str
     content: str
@@ -369,6 +379,7 @@ class TrendResponse(BaseModel):
 # ── Alerts ────────────────────────────────────────────────────────────────────
 
 class AlertOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     type: str
@@ -409,6 +420,7 @@ class TTSResponse(BaseModel):
 # ── Reminiscence Therapy ───────────────────────────────────────────────────────
 
 class ReminiscencePromptOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     theme: str          # family | home | festivals | seasons | work | food
@@ -425,6 +437,7 @@ class ReminiscenceNoteIn(BaseModel):
 
 
 class ReminiscenceNoteOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     prompt_id: str
     patient_id: str
@@ -441,6 +454,7 @@ class SocialMessageIn(BaseModel):
 
 
 class SocialMessageOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     sender_id: str
@@ -453,6 +467,7 @@ class SocialMessageOut(BaseModel):
 # ── Daily Living Assistance ───────────────────────────────────────────────────
 
 class DailyTaskOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     label: str          # e.g. "Morning tea", "Take medication"
@@ -477,6 +492,7 @@ class MoodCheckinIn(BaseModel):
 
 
 class MoodCheckinOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     mood_score: int
@@ -497,6 +513,7 @@ class ActivityLogIn(BaseModel):
 
 
 class ActivityLogOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     activity_type: str
@@ -509,6 +526,7 @@ class ActivityLogOut(BaseModel):
 # ── Caregiver Education Library ───────────────────────────────────────────────
 
 class EducationArticleOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     title: str
     category: str
@@ -525,6 +543,7 @@ class EducationArticleProgressIn(BaseModel):
 
 
 class EducationArticleProgressOut(BaseModel):
+    model_config = {"from_attributes": True}
     article_id: str
     user_id: str
     completed: bool
@@ -533,6 +552,7 @@ class EducationArticleProgressOut(BaseModel):
 
 
 class EducationArticleProgressMapOut(BaseModel):
+    model_config = {"from_attributes": True}
     progress: dict[str, bool]
     updated_at: Optional[str] = None
 
@@ -563,6 +583,7 @@ class CaregiverWellbeingIn(BaseModel):
 
 
 class CaregiverWellbeingOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     user_id: str
     energy_score: int
@@ -588,6 +609,7 @@ class VisitPlanUpdate(BaseModel):
 
 
 class VisitPlanOut(BaseModel):
+    model_config = {"from_attributes": True}
     id: str
     patient_id: str
     patient_name: str

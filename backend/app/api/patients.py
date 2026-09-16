@@ -11,7 +11,7 @@ from app.models import (
 )
 
 from app.api.schemas import (
-    PatientProfileOut, PatientProfileUpdate,
+    PatientProfileOut, UserOut, PatientProfileUpdate,
     MedicationCreate, MedicationOut,
     SafetyCheckInCreate, SafetyCheckInOut,
     EmergencyContactCreate, EmergencyContactOut,
@@ -339,3 +339,11 @@ def patch_caregiver_link(
     add_audit_entry(db, current_user["id"], str(link.patient_id), action)
     
     return link
+
+@router.get("/my-patients", response_model=list[UserOut])
+def get_my_patients(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.core.crud import get_patients_for_user
+    allowed = get_patients_for_user(current_user, db)
+    if not allowed:
+        return []
+    return db.query(User).filter(User.id.in_(allowed)).all()

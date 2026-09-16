@@ -32,14 +32,12 @@ export default function CaregiverDashboard() {
 
   useEffect(() => {
     // Fetch real patients assigned to this caregiver
-    import('../services/api').then(({ getCaregiverLinks }) => {
-      getCaregiverLinks().then(links => {
-        // Since getCaregiverLinks doesn't return names yet, we just show their UUIDs
-        // In production, the backend would join User table to return names.
-        const mapped = links.map(l => ({ id: l.patient_id, name: `Patient (${l.patient_id.slice(0,6)})`, region: '' }))
+    import('../services/api').then(({ getMyPatients }) => {
+      getMyPatients().then(pts => {
+        const mapped = pts.map(p => ({ id: p.id, name: p.name, region: p.state_region || '' }))
         setPatients(mapped)
         if (mapped.length > 0) setPatientId(mapped[0].id)
-      }).catch(e => console.error("Failed to load caregiver links", e))
+      }).catch(e => console.error("Failed to load patients", e))
     })
   }, [])
 
@@ -101,7 +99,7 @@ export default function CaregiverDashboard() {
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       <header className="app-header">
         <h1 style={{ fontSize: 'var(--font-size-base)' }}>
-          📊 {user?.role === 'health_worker' ? 'Health Worker' : 'Caregiver'} Dashboard
+          📊 {user?.role === 'admin' ? 'Admin' : user?.role === 'health_worker' ? 'Health Worker' : 'Caregiver'} Dashboard
         </h1>
         <button className="btn btn-ghost" style={{ color: '#fff', minHeight: 44 }} onClick={signOut}>
           {t('logout')}

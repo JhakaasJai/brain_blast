@@ -268,3 +268,5 @@ export const deleteTransportNote = (patientId, noteId) =>
   api.delete(`/patients/${patientId}/transport-notes/${noteId}`)
 
 export default api
+
+export const getMyPatients = () => api.get('/my-patients').then((r) => r.data)
