@@ -10,13 +10,16 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user
 from app.api.schemas import (
     LoginRequest, TokenResponse, RefreshRequest, UserOut, UserUpdate, 
-    RegisterRequest, AdminAssignCaregiverRequest
+    RegisterRequest, AdminAssignCaregiverRequest, VerifyEmailRequest
 )
 from app.core.auth import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token
 from app.core.db import get_db
 from app.models import User, PatientProfile, Notification, CaregiverLink
+import resend
+import os
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 def is_valid_password(password: str) -> bool:
     # At least 8 characters, 1 uppercase, 1 lowercase, 1 number
@@ -26,7 +29,7 @@ def is_valid_password(password: str) -> bool:
     if not re.search(r"[0-9]", password): return False
     return True
 
-@router.post("/register", response_model=TokenResponse, status_code=201)
+@router.post("/register", status_code=201)
 def register(body: RegisterRequest, db: Session = Depends(get_db)):
     if not is_valid_password(body.password):
         raise HTTPException(
@@ -66,12 +69,49 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     db.add(welcome_msg)
     db.commit()
 
-    token_data = {"sub": str(new_user.id), "role": new_user.role}
+    # Generate verification token
+    from datetime import timedelta
+    verify_token = create_access_token(
+        {"sub": str(new_user.id), "type": "verify"}, 
+        expires_delta=timedelta(hours=24)
+    )
+    
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    verify_link = f"{frontend_url}/verify-email?token={verify_token}"
+    
+    if resend.api_key:
+        try:
+            resend.Emails.send({
+                "from": "onboarding@resend.dev",
+                "to": body.email,
+                "subject": "Verify your Brain Blast account",
+                "html": f'<p>Welcome to Brain Blast!</p><p>Please click <a href="{verify_link}">here</a> to verify your account.</p>'
+            })
+        except Exception as e:
+            print(f"Error sending email: {e}")
+            
+    return {"message": "Registration successful. Please check your email to verify your account."}
+
+@router.post("/verify-email", response_model=TokenResponse)
+def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
+    payload = decode_token(body.token)
+    if not payload or payload.get("type") != "verify":
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
+        
+    user_id = payload.get("sub", "")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.is_verified = True
+    db.commit()
+    
+    token_data = {"sub": str(user.id), "role": user.role}
     return TokenResponse(
         access_token=create_access_token(token_data),
         refresh_token=create_refresh_token(token_data),
-        user_id=str(new_user.id),
-        role=new_user.role,
+        user_id=str(user.id),
+        role=user.role,
     )
 
 @router.get("/admin/users", response_model=list[UserOut])
@@ -146,6 +186,13 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
+        
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email address before logging in."
+        )
+        
     token_data = {"sub": str(user.id), "role": user.role}
     return TokenResponse(
         access_token=create_access_token(token_data),

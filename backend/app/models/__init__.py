@@ -8,14 +8,15 @@ from app.core.db import Base
 class User(Base):
     __tablename__ = "users"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, nullable=False)
-    role = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
+    role = Column(String, nullable=False)
     phone = Column(String)
-    preferred_language = Column(String)
+    password_hash = Column(String, nullable=False)
+    preferred_language = Column(String, default="en")
     state_region = Column(String)
-    password_hash = Column(String)
-    quiet_hours_start = Column(String)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     quiet_hours_end = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

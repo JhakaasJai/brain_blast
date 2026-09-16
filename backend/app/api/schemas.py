@@ -20,6 +20,9 @@ class AdminAssignCaregiverRequest(BaseModel):
     patient_id: str
     relationship: str
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
 class LoginRequest(BaseModel):
     email: str
     password: str

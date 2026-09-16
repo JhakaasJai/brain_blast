@@ -5,6 +5,7 @@ import SyncIndicator from './components/SyncIndicator'
 
 import LoginPage           from './pages/LoginPage'
 import RegisterPage        from './pages/RegisterPage'
+import VerifyEmailPage     from './pages/VerifyEmailPage'
 import PatientHomePage     from './pages/PatientHomePage'
 import OnboardingPage      from './pages/OnboardingPage'
 import GameShell           from './pages/GameShell'
@@ -51,6 +52,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to={user.role === 'patient' ? '/home' : '/dashboard'} replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to={user.role === 'patient' ? '/home' : '/dashboard'} replace /> : <RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/onboarding" element={
           <RequireAuth roles={['patient']}>
             <OnboardingPage />

@@ -2,13 +2,23 @@ import uuid
 from sqlalchemy.orm import Session
 from app.core.db import engine, SessionLocal
 from app.models import Base, User, PatientProfile, CaregiverLink, HWPatientMap
+from sqlalchemy import text
 from app.core.auth import get_password_hash
 
 def seed_db():
     print("Ensuring database tables exist...")
-    Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
+    try:
+        # Safely inject the new is_verified column if it doesn't exist
+        db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;"))
+        db.commit()
+    except Exception as e:
+        print(f"Warning: column alter failed (expected if local SQLite): {e}")
+        db.rollback()
+
+    Base.metadata.create_all(bind=engine)
+    
     try:
         # Check if users are already seeded
         if db.query(User).filter(User.email == "admin@ner.in").first():
@@ -22,10 +32,10 @@ def seed_db():
         hw_id = uuid.uuid4()
 
         users = [
-            User(id=admin_id, email="admin@ner.in", role="admin", name="System Admin", phone="0000000000", password_hash=get_password_hash("adminpass")),
-            User(id=patient_id, email="patient@ner.in", role="patient", name="Demo Patient", phone="1111111111", password_hash=get_password_hash("patpass")),
-            User(id=caregiver_id, email="caregiver@ner.in", role="caregiver", name="Primary Caregiver", phone="2222222222", password_hash=get_password_hash("carepass")),
-            User(id=hw_id, email="hw@ner.in", role="health_worker", name="Health Worker (ASHA)", phone="3333333333", password_hash=get_password_hash("hwpass")),
+            User(id=admin_id, email="admin@ner.in", role="admin", name="System Admin", phone="0000000000", password_hash=get_password_hash("adminpass"), is_verified=True),
+            User(id=patient_id, email="patient@ner.in", role="patient", name="Demo Patient", phone="1111111111", password_hash=get_password_hash("patpass"), is_verified=True),
+            User(id=caregiver_id, email="caregiver@ner.in", role="caregiver", name="Primary Caregiver", phone="2222222222", password_hash=get_password_hash("carepass"), is_verified=True),
+            User(id=hw_id, email="hw@ner.in", role="health_worker", name="Health Worker (ASHA)", phone="3333333333", password_hash=get_password_hash("hwpass"), is_verified=True),
         ]
         
         for u in users:

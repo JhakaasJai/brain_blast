@@ -43,6 +43,9 @@ export const login = (email, password) =>
 export const register = (data) =>
   api.post('/auth/register', data).then((r) => r.data)
 
+export const verifyEmail = (token) =>
+  api.post('/auth/verify-email', { token }).then((r) => r.data)
+
 export const adminGetUsers = () =>
   api.get('/auth/admin/users').then((r) => r.data)
 
