@@ -90,6 +90,12 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+            Don't have an account? <Link to="/register" style={{ color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>Sign Up</Link>
+          </p>
+        </div>
+
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '1.5rem', textAlign: 'center' }}>
           {t('not_a_medical_device')}
         </p>
