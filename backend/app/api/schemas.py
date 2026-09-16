@@ -8,6 +8,18 @@ from pydantic import BaseModel
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: Literal["patient", "caregiver", "health_worker"]
+    phone: Optional[str] = None
+
+class AdminAssignCaregiverRequest(BaseModel):
+    caregiver_id: str
+    patient_id: str
+    relationship: str
+
 class LoginRequest(BaseModel):
     email: str
     password: str

@@ -40,6 +40,15 @@ api.interceptors.response.use(
 export const login = (email, password) =>
   api.post('/auth/login', { email, password }).then((r) => r.data)
 
+export const register = (data) =>
+  api.post('/auth/register', data).then((r) => r.data)
+
+export const adminGetUsers = () =>
+  api.get('/auth/admin/users').then((r) => r.data)
+
+export const adminAssignCaregiver = (data) =>
+  api.post('/auth/admin/assign-caregiver', data).then((r) => r.data)
+
 // Profile
 export const getProfile = (patientId) =>
   api.get(`/patients/${patientId}/profile`).then((r) => r.data)

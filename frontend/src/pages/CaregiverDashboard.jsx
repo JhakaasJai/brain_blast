@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/AuthContext'
 import { getDashboardSummary, getDashboardTrends, getAlerts, getNotifications, getProfile } from '../services/api'
 import MedicalDisclaimer from '../components/MedicalDisclaimer'
+import AdminPanel from '../components/AdminPanel'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './components/AuthContext'
 import SyncIndicator from './components/SyncIndicator'
 
 import LoginPage           from './pages/LoginPage'
+import RegisterPage        from './pages/RegisterPage'
 import PatientHomePage     from './pages/PatientHomePage'
 import OnboardingPage      from './pages/OnboardingPage'
 import GameShell           from './pages/GameShell'
@@ -49,6 +50,7 @@ function AppRoutes() {
       <SyncIndicator />
       <Routes>
         <Route path="/login" element={user ? <Navigate to={user.role === 'patient' ? '/home' : '/dashboard'} replace /> : <LoginPage />} />
+        <Route path="/register" element={user ? <Navigate to={user.role === 'patient' ? '/home' : '/dashboard'} replace /> : <RegisterPage />} />
         <Route path="/onboarding" element={
           <RequireAuth roles={['patient']}>
             <OnboardingPage />
