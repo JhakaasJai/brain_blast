@@ -45,26 +45,31 @@ export default function RegisterPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center', padding: '1rem',
-                  background: 'linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%)' }}>
+                  alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+                  background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)' }}>
 
-      <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ marginBottom: '2rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         {languages.map((l) => (
           <button key={l.code}
             className="btn btn-ghost"
-            style={{ background: i18n.language === l.code ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
-                     color: '#fff', minHeight: '48px', padding: '0.4rem 0.9rem', fontSize: '1rem' }}
+            style={{ 
+              background: i18n.language === l.code ? 'rgba(255,255,255,0.25)' : 'transparent',
+              color: '#fff', 
+              border: i18n.language === l.code ? '2px solid rgba(255,255,255,0.5)' : '2px solid transparent',
+              minHeight: '44px', padding: '0.4rem 1.2rem', fontSize: '1rem',
+              borderRadius: '99px'
+            }}
             onClick={() => { i18n.changeLanguage(l.code); localStorage.setItem('lang', l.code) }}>
             {l.label}
           </button>
         ))}
       </div>
 
-      <div className="card" style={{ width: '100%', maxWidth: '450px' }}>
-        <h1 style={{ fontSize: 'var(--font-size-xl)', textAlign: 'center', marginBottom: '0.25rem' }}>
+      <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem 2rem', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+        <h1 style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '0.5rem', letterSpacing: '-0.03em', color: 'var(--color-primary-dark)' }}>
           🧠 Create Account
         </h1>
-        <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
+        <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', marginBottom: '2rem', fontSize: '1.05rem' }}>
           Join the {t('app_name')} platform
         </p>
 
