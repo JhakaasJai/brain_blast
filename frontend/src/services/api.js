@@ -17,7 +17,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
-    if (error.response?.status === 401) {
+    const originalUrl = error.config?.url || ''
+    
+    // Prevent infinite loop if the 401 came from login or refresh itself
+    if (error.response?.status === 401 && !originalUrl.includes('/auth/login') && !originalUrl.includes('/auth/refresh')) {
       const refresh = localStorage.getItem('refresh_token')
       if (refresh) {
         try {
