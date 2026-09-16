@@ -68,10 +68,12 @@ class Reminder(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    title = Column(String, nullable=False)
-    type = Column(String, nullable=False)
-    time = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True)
+    category = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    schedule_rule = Column(Text)
+    active = Column(Boolean, default=True)
+    critical = Column(Boolean, default=False)
+    escalation_minutes = Column(Integer, default=60)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class ReminderEvent(Base):
@@ -121,7 +123,7 @@ class CaregiverWellbeing(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     energy_score = Column(Integer, nullable=False)
     stress_score = Column(Integer, nullable=False)
-    support_needed = Column(Boolean, default=False)
+    support_needed = Column(String)
     notes = Column(String)
     recorded_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -209,17 +211,14 @@ class MoodCheckin(Base):
     sleep_quality = Column(String)
     notes = Column(String)
     recorded_at = Column(DateTime(timezone=True), server_default=func.now())
-    activity_type = Column(String, nullable=False)
-    duration_minutes = Column(Integer, nullable=False)
-    intensity = Column(String)
-    logged_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class CaregiverNote(Base):
     __tablename__ = "caregiver_notes"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     author_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
-    content = Column(Text, nullable=False)
+    note = Column(Text, nullable=False)
+    category = Column(String, default="handover")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class SafetyCheckIn(Base):
@@ -227,6 +226,7 @@ class SafetyCheckIn(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     status = Column(String, nullable=False)
+    note = Column(String)
     share_location = Column(Boolean, default=False)
     approximate_area = Column(String)
     consent_required = Column(Boolean, default=False)
@@ -246,8 +246,14 @@ class Medication(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     name = Column(String, nullable=False)
-    dosage = Column(String, nullable=False)
-    frequency = Column(String, nullable=False)
+    dose = Column(String, nullable=False)
+    form = Column(String, default="tablet")
+    instructions = Column(String)
+    prescribing_clinician = Column(String)
+    start_date = Column(String)
+    end_date = Column(String)
+    refill_date = Column(String)
+    active = Column(Boolean, default=True)
     missed_dose_guidance = Column(String)
 
 class AuditLog(Base):

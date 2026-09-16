@@ -177,7 +177,7 @@ class AuditEntryOut(BaseModel):
     actor_id: str
     patient_id: str
     action: str
-    accessed_at: str
+    timestamp: str
 
 
 class CaregiverNoteCreate(BaseModel):
@@ -200,8 +200,10 @@ class GameSessionIn(BaseModel):
     difficulty: Literal["easy", "medium", "hard"]
     score: int
     accuracy: float
-    reaction_time_avg_ms: int
-    errors: int
+    reaction_time_avg_ms: int = 0
+    errors: int = 0
+    time_spent_seconds: int = 0
+    hints_used: int = 0
     started_at: str
     completed_at: str
     client_uuid: str
@@ -242,10 +244,33 @@ class ReminderUpdate(BaseModel):
     escalation_minutes: Optional[int] = None
 
 
-class ReminderOut(ReminderCreate):
+class ReminderOut(BaseModel):
     id: str
+    patient_id: str
+    category: str
+    message: str
+    schedule_rule: Optional[dict] = None
+    active: bool = True
     critical: bool = False
     escalation_minutes: int = 60
+
+    class Config:
+        from_attributes = True
+
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        import json
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["patient_id"] = str(data["patient_id"])
+            if isinstance(data.get("schedule_rule"), str):
+                try:
+                    data["schedule_rule"] = json.loads(data["schedule_rule"])
+                except Exception:
+                    data["schedule_rule"] = {}
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
 
 
 class ReminderEscalationOut(BaseModel):
@@ -262,6 +287,8 @@ class ReminderEventIn(BaseModel):
     fired_at: str
     action: Literal["done", "snoozed", "missed"]
     client_uuid: str
+    action_taken_at: Optional[str] = None
+    scheduled_time: Optional[str] = None
 
 
 class ReminderEventOut(ReminderEventIn):
@@ -429,6 +456,7 @@ class DailyTaskOut(BaseModel):
     id: str
     patient_id: str
     label: str          # e.g. "Morning tea", "Take medication"
+    icon: str           # e.g. "pill", "water", "hygiene"
     category: str       # morning | hygiene | meals | exercise | evening
     done: bool
     done_at: Optional[str] = None
@@ -475,7 +503,7 @@ class ActivityLogOut(BaseModel):
     duration_minutes: int
     intensity: Optional[str] = None
     notes: Optional[str] = None
-    logged_at: str
+    recorded_at: str
 
 
 # ── Caregiver Education Library ───────────────────────────────────────────────

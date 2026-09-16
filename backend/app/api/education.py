@@ -18,20 +18,35 @@ EDUCATION_ARTICLES = [
     {
         "id": "1",
         "title": "Understanding Stroke Recovery",
-        "content": "Stroke recovery is a gradual process that involves retraining the brain (neuroplasticity)...",
-        "category": "recovery"
+        "summary": "Stroke recovery involves retraining the brain through neuroplasticity.",
+        "body": "Stroke recovery is a gradual process that involves retraining the brain (neuroplasticity). With consistent practice and support, many patients can regain significant function. Physical therapy, speech therapy, and occupational therapy are key pillars of recovery.",
+        "category": "recovery",
+        "language": "en",
+        "source_note": "Educational information only; discuss individual care decisions with a qualified clinician.",
+        "read_time_minutes": 4,
+        "updated_at": "2025-01-01T00:00:00Z",
     },
     {
         "id": "2",
         "title": "Nutrition for Brain Health",
-        "content": "A diet rich in omega-3 fatty acids, antioxidants, and vitamins supports cognitive function...",
-        "category": "nutrition"
+        "summary": "A balanced diet rich in omega-3 fatty acids and antioxidants supports cognitive function.",
+        "body": "A diet rich in omega-3 fatty acids, antioxidants, and vitamins supports cognitive function. Foods like fish, leafy greens, berries, and nuts are particularly beneficial. Staying hydrated and limiting processed food also helps maintain brain health.",
+        "category": "nutrition",
+        "language": "en",
+        "source_note": "Educational information only; discuss individual care decisions with a qualified clinician.",
+        "read_time_minutes": 3,
+        "updated_at": "2025-01-01T00:00:00Z",
     },
     {
         "id": "3",
         "title": "Managing Caregiver Stress",
-        "content": "Caring for a loved one can be demanding. It is important to take time for yourself, seek support...",
-        "category": "wellbeing"
+        "summary": "Caring for a loved one can be demanding — self-care and support networks are vital.",
+        "body": "Caring for a loved one can be demanding. It is important to take time for yourself, seek support from friends and caregiver groups, and recognise the signs of burnout early. Regular breaks and professional support can make a significant difference.",
+        "category": "wellbeing",
+        "language": "en",
+        "source_note": "Educational information only; discuss individual care decisions with a qualified clinician.",
+        "read_time_minutes": 3,
+        "updated_at": "2025-01-01T00:00:00Z",
     }
 ]
 

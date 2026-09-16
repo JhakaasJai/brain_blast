@@ -30,7 +30,8 @@ def create_activity(patient_id:str,body:ActivityLogIn,current_user:dict=Depends(
         activity_type=body.activity_type,
         duration_minutes=body.duration_minutes,
         intensity=body.intensity,
-        logged_at=datetime.now(timezone.utc)
+        notes=body.notes,
+        recorded_at=datetime.now(timezone.utc)
     )
     db.add(x)
     db.commit()

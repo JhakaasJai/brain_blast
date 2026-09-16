@@ -244,7 +244,8 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db)):
         role=user.role,
     )
 
-from app.api.dependencies import get_current_user
+    return None
+
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 def delete_account(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):

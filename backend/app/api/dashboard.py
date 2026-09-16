@@ -38,7 +38,7 @@ def dashboard_summary(patient_id: str, current_user: dict = Depends(get_current_
     for d in session_dates:
         if d == check_date or d == check_date - timedelta(days=1):
             streak += 1
-            check_date = d
+            check_date = d - timedelta(days=1)
         else:
             break
 

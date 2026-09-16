@@ -87,8 +87,9 @@ def update_patient_profile(
     db: Session = Depends(get_db)
 ):
     _assert_can_read_patient(current_user, patient_id, db)
-    if current_user["role"] == "caregiver" and current_user["id"] != patient_id:
-        raise HTTPException(status_code=403, detail="Caregivers cannot edit patient profiles")
+    # Only the patient themselves or an admin can modify a patient profile
+    if current_user["role"] not in ("patient", "admin") and current_user["id"] != patient_id:
+        raise HTTPException(status_code=403, detail="Only the patient or an admin can edit this profile")
 
     profile = _get_or_create_profile(db, patient_id)
 

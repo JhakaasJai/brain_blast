@@ -4,7 +4,6 @@ Game session sync + difficulty endpoint.
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import uuid
 from datetime import datetime, timezone
 
 from app.api.dependencies import get_current_user

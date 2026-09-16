@@ -36,18 +36,29 @@ def create_reminder(body: ReminderCreate, current_user: dict = Depends(get_curre
         raise HTTPException(status_code=403, detail="Not authorised")
     if current_user["role"] not in ("caregiver", "health_worker", "admin"):
         raise HTTPException(status_code=403, detail="Only caregivers or care teams can manage reminders")
-        
+
+    import json
+    data = body.model_dump()
+    data["schedule_rule"] = json.dumps(data["schedule_rule"])
     rem = Reminder(
         id=uuid.uuid4(),
-        **body.model_dump(),
+        **data,
         created_by=current_user["id"],
         created_at=datetime.now(timezone.utc),
-        is_active=True
     )
     db.add(rem)
     db.commit()
     db.refresh(rem)
-    return rem
+    # Parse schedule_rule back for response
+    result = {c.key: getattr(rem, c.key) for c in rem.__table__.columns}
+    result["id"] = str(result["id"])
+    result["patient_id"] = str(result["patient_id"])
+    if isinstance(result.get("schedule_rule"), str):
+        try:
+            result["schedule_rule"] = json.loads(result["schedule_rule"])
+        except Exception:
+            result["schedule_rule"] = {}
+    return result
 
 
 @router.post("/reminders/{reminder_id}/escalate", response_model=ReminderEscalationOut)
@@ -159,7 +170,7 @@ def sync_reminder_events(
             id=uuid.uuid4(),
             client_uuid=ev.client_uuid,
             reminder_id=ev.reminder_id,
-            scheduled_time=datetime.fromisoformat(ev.scheduled_time),
+            scheduled_time=datetime.fromisoformat(ev.scheduled_time or ev.fired_at),
             status=ev.action, # maps frontend 'action' to db 'status'
             action_taken_at=datetime.fromisoformat(ev.action_taken_at) if ev.action_taken_at else None
         )
