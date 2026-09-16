@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { adminGetUsers, adminAssignCaregiver } from '../services/api'
-import { useAuth } from '../components/AuthContext'
+import { useAuth } from './AuthContext'
 
 export default function AdminPanel() {
   const { t } = useTranslation()
