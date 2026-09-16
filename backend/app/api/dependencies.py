@@ -6,11 +6,12 @@ import os
 
 from app.core.db import get_db
 from app.models import User
+from app.core.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "mock_secret")
-ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
