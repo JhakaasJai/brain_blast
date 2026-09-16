@@ -39,35 +39,45 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         
     existing_user = db.query(User).filter(User.email == body.email).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email is already registered.")
+        if existing_user.is_verified:
+            raise HTTPException(status_code=400, detail="Email is already registered and verified.")
+        else:
+            # Overwrite unverified account details completely to allow re-registration
+            existing_user.name = body.name
+            existing_user.role = body.role
+            existing_user.phone = body.phone
+            existing_user.password_hash = get_password_hash(body.password)
+            existing_user.created_at = datetime.now(timezone.utc)
+            db.commit()
+            new_user = existing_user
+    else:
+        new_user = User(
+            id=uuid.uuid4(),
+            email=body.email,
+            name=body.name,
+            role=body.role,
+            phone=body.phone,
+            password_hash=get_password_hash(body.password),
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(new_user)
+        db.flush()
 
-    new_user = User(
-        id=uuid.uuid4(),
-        email=body.email,
-        name=body.name,
-        role=body.role,
-        phone=body.phone,
-        password_hash=get_password_hash(body.password),
-        created_at=datetime.now(timezone.utc)
-    )
-    db.add(new_user)
-    db.flush()
+        if body.role == "patient":
+            profile = PatientProfile(user_id=new_user.id)
+            db.add(profile)
 
-    if body.role == "patient":
-        profile = PatientProfile(user_id=new_user.id)
-        db.add(profile)
-
-    # Welcome notification
-    welcome_msg = Notification(
-        id=uuid.uuid4(),
-        user_id=new_user.id,
-        target_user_id=new_user.id,
-        message=f"Welcome to Brain Blast, {body.name}! We're glad to have you.",
-        channel="in_app",
-        created_at=datetime.now(timezone.utc)
-    )
-    db.add(welcome_msg)
-    db.commit()
+        # Welcome notification
+        welcome_msg = Notification(
+            id=uuid.uuid4(),
+            user_id=new_user.id,
+            target_user_id=new_user.id,
+            message=f"Welcome to Brain Blast, {body.name}! We're glad to have you.",
+            channel="in_app",
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(welcome_msg)
+        db.commit()
 
     # Generate verification token
     from datetime import timedelta
