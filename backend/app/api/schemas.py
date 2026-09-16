@@ -63,12 +63,17 @@ class UserUpdate(BaseModel):
 
 class PatientProfileOut(BaseModel):
     user_id: str
-    dob_or_age: int
-    dementia_stage_note: str
-    theme_preference: str
-    onboarding_complete: bool
-    guardian_consent_at: Optional[str]
-    current_difficulty: dict
+    dob_or_age: Optional[int] = None
+    dementia_stage_note: Optional[str] = None
+    theme_preference: Optional[str] = "assam_village"
+    onboarding_complete: bool = False
+    guardian_consent_at: Optional[str] = None
+    current_difficulty: dict = {
+        "memory": "easy",
+        "attention": "easy",
+        "routine": "easy",
+        "recognition": "easy",
+    }
     preferred_name: Optional[str] = None
     likes: list[str] = []
     dislikes: list[str] = []

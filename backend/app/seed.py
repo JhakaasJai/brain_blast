@@ -9,15 +9,15 @@ def seed_db():
     print("Ensuring database tables exist...")
     
     db = SessionLocal()
+    Base.metadata.create_all(bind=engine)
     try:
-        # Safely inject the new is_verified column if it doesn't exist
         db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;"))
+        db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS quiet_hours_start VARCHAR;"))
+        db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS quiet_hours_end VARCHAR;"))
         db.commit()
     except Exception as e:
         print(f"Warning: column alter failed (expected if local SQLite): {e}")
         db.rollback()
-
-    Base.metadata.create_all(bind=engine)
     
     try:
         # Check if users are already seeded

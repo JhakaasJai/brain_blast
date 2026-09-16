@@ -63,11 +63,6 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         db.add(new_user)
         db.flush()
 
-        if body.role == "patient":
-            profile = PatientProfile(user_id=new_user.id)
-            db.add(profile)
-
-        # Welcome notification
         welcome_msg = Notification(
             id=uuid.uuid4(),
             user_id=new_user.id,
@@ -78,6 +73,12 @@ def register(body: RegisterRequest, request: Request, db: Session = Depends(get_
         )
         db.add(welcome_msg)
         db.commit()
+
+    if body.role == "patient":
+        existing_profile = db.query(PatientProfile).filter(PatientProfile.user_id == new_user.id).first()
+        if not existing_profile:
+            db.add(PatientProfile(user_id=new_user.id, theme_preference="assam_village"))
+            db.commit()
 
     # Generate verification token
     from datetime import timedelta
@@ -122,6 +123,10 @@ def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
         
     user.is_verified = True
+    if user.role == "patient":
+        existing_profile = db.query(PatientProfile).filter(PatientProfile.user_id == user.id).first()
+        if not existing_profile:
+            db.add(PatientProfile(user_id=user.id, theme_preference="assam_village"))
     db.commit()
     
     token_data = {"sub": str(user.id), "role": user.role}

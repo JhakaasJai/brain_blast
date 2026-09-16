@@ -47,8 +47,9 @@ export default function OnboardingPage() {
         onboarding_complete: true,
       })
       navigate('/home', { replace: true })
-    } catch {
-      setError('We could not save these details. Your information is still safe; please try again.')
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      setError(typeof detail === 'string' ? detail : 'We could not save these details. Your information is still safe; please try again.')
     } finally { setSaving(false) }
   }
 

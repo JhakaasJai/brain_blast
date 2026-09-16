@@ -31,18 +31,52 @@ def _assert_can_read_patient(current_user: dict, patient_id: str, db: Session):
                             detail="Not authorised to access this patient's data")
 
 
+def _get_or_create_profile(db: Session, patient_id: str) -> PatientProfile:
+    profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
+    if profile:
+        return profile
+    profile = PatientProfile(user_id=patient_id, theme_preference="assam_village")
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+def serialize_patient_profile(profile: PatientProfile) -> dict:
+    consent = profile.guardian_consent_at
+    return {
+        "user_id": str(profile.user_id),
+        "dob_or_age": profile.dob_or_age,
+        "dementia_stage_note": profile.dementia_stage_note or "",
+        "theme_preference": profile.theme_preference or "assam_village",
+        "onboarding_complete": bool(profile.onboarding_complete),
+        "guardian_consent_at": consent.isoformat() if consent else None,
+        "current_difficulty": {
+            "memory": profile.difficulty_memory or "easy",
+            "attention": profile.difficulty_attention or "easy",
+            "routine": profile.difficulty_routine or "easy",
+            "recognition": profile.difficulty_recognition or "easy",
+        },
+        "preferred_name": profile.preferred_name,
+        "likes": list(profile.likes or []),
+        "dislikes": list(profile.dislikes or []),
+        "routine_notes": profile.routine_notes,
+        "mobility_notes": profile.mobility_notes,
+        "vision_notes": profile.vision_notes,
+        "hearing_notes": profile.hearing_notes,
+        "location_sharing_consent": bool(profile.location_sharing_consent),
+        "identification_notes": profile.identification_notes,
+    }
+
+
 # ── Profile ───────────────────────────────────────────────────────────────────
 
 @router.get("/patients/{patient_id}/profile", response_model=PatientProfileOut)
 def get_patient_profile(patient_id: str, current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     _assert_can_read_patient(current_user, patient_id, db)
     add_audit_entry(db, current_user["id"], patient_id, "read_profile")
-    
-    profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Patient profile not found")
-        
-    return profile
+    profile = _get_or_create_profile(db, patient_id)
+    return serialize_patient_profile(profile)
 
 
 @router.put("/patients/{patient_id}/profile", response_model=PatientProfileOut)
@@ -55,21 +89,19 @@ def update_patient_profile(
     _assert_can_read_patient(current_user, patient_id, db)
     if current_user["role"] == "caregiver" and current_user["id"] != patient_id:
         raise HTTPException(status_code=403, detail="Caregivers cannot edit patient profiles")
-        
-    profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Patient profile not found")
-        
+
+    profile = _get_or_create_profile(db, patient_id)
+
     if body.theme_preference and body.theme_preference not in {theme["id"] for theme in REGIONAL_THEMES}:
         raise HTTPException(status_code=422, detail="Unknown regional theme")
-        
+
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(profile, field, value)
-        
+
     db.commit()
     db.refresh(profile)
     add_audit_entry(db, current_user["id"], patient_id, "update_profile")
-    return profile
+    return serialize_patient_profile(profile)
 
 
 # ── Medication records ────────────────────────────────────────────────────────
