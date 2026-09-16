@@ -251,6 +251,8 @@ export default function CaregiverDashboard() {
             </div>
           ))}
         </div>
+
+        <AdminPanel />
       </div>
     </div>
   )
