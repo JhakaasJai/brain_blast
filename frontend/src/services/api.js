@@ -32,6 +32,12 @@ api.interceptors.response.use(
         }
       }
     }
+    
+    // Normalize FastAPI 422 validation error arrays into a single string
+    if (error.response?.status === 422 && Array.isArray(error.response.data?.detail)) {
+      error.response.data.detail = error.response.data.detail.map(err => err.msg).join(', ')
+    }
+    
     return Promise.reject(error)
   }
 )

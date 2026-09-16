@@ -11,17 +11,12 @@ import {
 
 const GAME_TYPES = ['memory', 'attention', 'routine', 'recognition']
 
-const PATIENTS = [
-  { id: 'user-patient-1', name: 'Rina Borah (Assam)', region: 'Assam' },
-  { id: 'user-patient-2', name: 'Banshan Lyngdoh (Meghalaya)', region: 'Meghalaya' },
-  { id: 'user-patient-3', name: 'Thoibi Haobijam (Manipur)', region: 'Manipur' },
-]
-
 export default function CaregiverDashboard() {
   const { t } = useTranslation()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
-  const [patientId, setPatientId] = useState('user-patient-1')
+  const [patientId, setPatientId] = useState('')
+  const [patients, setPatients] = useState([])
   const [summary, setSummary] = useState(null)
   const [trends, setTrends] = useState({})
   const [trendExplanations, setTrendExplanations] = useState({})
@@ -35,7 +30,20 @@ export default function CaregiverDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
 
-  const filteredPatients = PATIENTS.filter(p => {
+  useEffect(() => {
+    // Fetch real patients assigned to this caregiver
+    import('../services/api').then(({ getCaregiverLinks }) => {
+      getCaregiverLinks().then(links => {
+        // Since getCaregiverLinks doesn't return names yet, we just show their UUIDs
+        // In production, the backend would join User table to return names.
+        const mapped = links.map(l => ({ id: l.patient_id, name: `Patient (${l.patient_id.slice(0,6)})`, region: '' }))
+        setPatients(mapped)
+        if (mapped.length > 0) setPatientId(mapped[0].id)
+      }).catch(e => console.error("Failed to load caregiver links", e))
+    })
+  }, [])
+
+  const filteredPatients = patients.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesRegion = regionFilter === '' || p.region === regionFilter
     return matchesSearch && matchesRegion
@@ -45,7 +53,9 @@ export default function CaregiverDashboard() {
   // since the dropdown value will just show empty if not in list. We let it be.
 
   useEffect(() => {
-    loadData()
+    if (patientId) {
+      loadData()
+    }
   }, [patientId])
 
   const loadData = async () => {
@@ -76,7 +86,12 @@ export default function CaregiverDashboard() {
       setTrends(trendData)
       setTrendExplanations(trendSummaries)
     } catch (e) {
-      setError(e.response?.data?.detail || e.message)
+      const errDetail = e.response?.data?.detail
+      if (Array.isArray(errDetail)) {
+        setError(errDetail.map(err => err.msg).join(', '))
+      } else {
+        setError(errDetail || e.message)
+      }
     } finally {
       setLoading(false)
     }
