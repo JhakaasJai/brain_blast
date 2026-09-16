@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/AuthContext'
-import { getCaregiverLinks, updateCaregiverLink, getProfile, updateProfile, getRegionalThemes, getMe, updateMe } from '../services/api'
+import { getCaregiverLinks, updateCaregiverLink, getProfile, updateProfile, getRegionalThemes, getMe, updateMe, deleteAccount } from '../services/api'
 import { getVoicePack, isTTSSupported, speak } from '../services/voice'
 
 const LANGUAGES = [
@@ -35,6 +35,8 @@ export default function SettingsPage() {
   const [quietStart, setQuietStart] = useState('')
   const [quietEnd, setQuietEnd] = useState('')
   const [quietStatus, setQuietStatus] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteStatus, setDeleteStatus] = useState('')
 
   React.useEffect(() => {
     getCaregiverLinks().then(setLinks).catch(() => setConsentError('Unable to load access grants.'))
@@ -122,6 +124,22 @@ export default function SettingsPage() {
       setQuietStatus('Quiet hours saved successfully.')
     } catch {
       setQuietStatus('Failed to save quiet hours.')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!deleteConfirm) {
+      setDeleteConfirm(true)
+      return
+    }
+    setDeleteStatus('Deleting account...')
+    try {
+      await deleteAccount()
+      signOut()
+      navigate('/login', { replace: true })
+    } catch (err) {
+      setDeleteStatus('Failed to delete account. Please try again.')
+      setDeleteConfirm(false)
     }
   }
 
@@ -253,6 +271,21 @@ export default function SettingsPage() {
           <button className="btn btn-outline btn-block" onClick={() => navigate('/backup')}>
             Backup and restore
           </button>
+        </div>
+
+        <div className="card">
+          <h3 style={{ marginTop: 0, color: 'var(--color-danger)' }}>⚠️ Danger Zone</h3>
+          <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+            Deleting your account will permanently erase all your data, progress, and settings. This cannot be undone.
+          </p>
+          <button 
+            className={`btn btn-block mt-2 ${deleteConfirm ? 'btn-danger' : 'btn-outline'}`}
+            style={!deleteConfirm ? { borderColor: 'var(--color-danger)', color: 'var(--color-danger)' } : {}}
+            onClick={handleDeleteAccount}
+          >
+            {deleteConfirm ? 'Confirm Deletion (Irreversible)' : 'Delete Account'}
+          </button>
+          {deleteStatus && <p role="status" style={{ fontSize: '0.9rem', color: 'var(--color-danger)', marginTop: '0.5rem', fontWeight: 'bold' }}>{deleteStatus}</p>}
         </div>
 
         <div className="card">

@@ -55,6 +55,9 @@ export const register = (data) =>
 export const verifyEmail = (token) =>
   api.post('/auth/verify-email', { token }).then((r) => r.data)
 
+export const deleteAccount = () =>
+  api.delete('/auth/me').then((r) => r.data)
+
 export const adminGetUsers = () =>
   api.get('/auth/admin/users').then((r) => r.data)
 

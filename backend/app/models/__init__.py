@@ -17,8 +17,8 @@ class User(Base):
     state_region = Column(String)
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    quiet_hours_start = Column(String)
     quiet_hours_end = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class PatientProfile(Base):
     __tablename__ = "patient_profiles"
