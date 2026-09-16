@@ -57,8 +57,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     # Welcome notification
     welcome_msg = Notification(
         id=uuid.uuid4(),
+        user_id=new_user.id,
         target_user_id=new_user.id,
-        patient_id=new_user.id if body.role == "patient" else None,
         message=f"Welcome to Brain Blast, {body.name}! We're glad to have you.",
         channel="in_app",
         created_at=datetime.now(timezone.utc)
