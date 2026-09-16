@@ -98,11 +98,9 @@ export default function LoginPage() {
         <details style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
           <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Demo accounts</summary>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>patient1@ner.in / patient1pass (Patient – Assam)</li>
-            <li>patient2@ner.in / patient2pass (Patient – Meghalaya)</li>
-            <li>patient3@ner.in / patient3pass (Patient – Manipur)</li>
-            <li>caregiver1@ner.in / cg1pass (Caregiver)</li>
-            <li>hw1@ner.in / hw1pass (Health Worker)</li>
+            <li>patient@ner.in / patpass (Patient)</li>
+            <li>caregiver@ner.in / carepass (Caregiver)</li>
+            <li>hw@ner.in / hwpass (Health Worker)</li>
             <li>admin@ner.in / adminpass (Admin)</li>
           </ul>
         </details>
