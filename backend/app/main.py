@@ -8,7 +8,7 @@ from app.api import auth, patients, games, reminders, dashboard, voice, notifica
 from app.seed import seed_db
 
 app = FastAPI(
-    title="SIH PS 26003 — Cognitive Gaming & Memory Assistance Platform",
+    title="SMARAN — Cognitive Gaming & Memory Assistance Platform",
     description="AI-Based Cognitive Gaming & Memory Assistance Platform for Elderly Dementia Patients in NER (Prototype)",
     version="0.1.0-prototype",
 )
@@ -49,7 +49,7 @@ app.include_router(transport.router)
 def root():
     return {
         "status": "ok",
-        "service": "ps26003-backend",
+        "service": "smaran-backend",
         "version": "0.1.0-prototype",
         "mock": True,
         "docs": "/docs",

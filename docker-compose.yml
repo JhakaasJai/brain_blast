@@ -3,7 +3,7 @@ version: "3.9"
 services:
   backend:
     build: ./backend
-    container_name: ps26003-backend
+    container_name: smaran-backend
     ports:
       - "8000:8000"
     environment:
@@ -14,7 +14,7 @@ services:
 
   frontend:
     build: ./frontend
-    container_name: ps26003-frontend
+    container_name: smaran-frontend
     ports:
       - "80:80"
     depends_on:
@@ -26,9 +26,9 @@ services:
 #
 #   db:
 #     image: postgres:16
-#     container_name: ps26003-db
+#     container_name: smaran-db
 #     environment:
-#       POSTGRES_DB: ps26003
+#       POSTGRES_DB: smaran
 #       POSTGRES_USER: postgres
 #       POSTGRES_PASSWORD: yourpassword
 #     volumes:

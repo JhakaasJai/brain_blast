@@ -9,10 +9,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'NER Cognitive Care',
-        short_name: 'CognitiveCare',
+        name: 'SMARAN',
+        short_name: 'SMARAN',
         description: 'AI-Based Cognitive Gaming & Memory Assistance for Elderly',
-        theme_color: '#1a73e8',
+        theme_color: '#8BC34A',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
