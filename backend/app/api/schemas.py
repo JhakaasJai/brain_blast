@@ -755,7 +755,7 @@ class VisitPlanOut(BaseModel):
     id: Any
     patient_id: Any
     patient_name: str
-    scheduled_at: str
+    scheduled_at: Any
     purpose: str
     location: str
     notes: Optional[str] = None
@@ -765,6 +765,10 @@ class VisitPlanOut(BaseModel):
 
     @field_serializer("id", "patient_id", "created_by")
     def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("scheduled_at")
+    def serialize_scheduled_at(self, v: Any) -> str:
         return str(v) if v is not None else ""
 
     @field_serializer("created_at")
@@ -799,7 +803,7 @@ class AppointmentPrepOut(BaseModel):
     model_config = {"from_attributes": True}
     id: Any
     patient_id: Any
-    appointment_at: str
+    appointment_at: Any
     doctor_name: str
     clinic_or_hospital: str
     questions_to_ask: list[str] = []
@@ -815,6 +819,10 @@ class AppointmentPrepOut(BaseModel):
 
     @field_serializer("id", "patient_id", "created_by")
     def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("appointment_at")
+    def serialize_appt_at(self, v: Any) -> str:
         return str(v) if v is not None else ""
 
     @field_serializer("created_at")
@@ -858,7 +866,7 @@ class TransportNoteOut(BaseModel):
     id: Any
     patient_id: Any
     appointment_ref: Optional[Any] = None
-    appointment_at: str
+    appointment_at: Any
     mode: str
     pickup_point: str
     pickup_time: str
@@ -878,6 +886,10 @@ class TransportNoteOut(BaseModel):
     @field_serializer("appointment_ref")
     def serialize_appt_ref(self, v: Any) -> Optional[str]:
         return str(v) if v is not None else None
+
+    @field_serializer("appointment_at")
+    def serialize_appt_at(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
     @field_serializer("created_at")
     def serialize_dt(self, v: Any) -> str:
