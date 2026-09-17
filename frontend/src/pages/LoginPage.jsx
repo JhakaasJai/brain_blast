@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../components/AuthContext'
-import { login } from '../services/api'
+import { login, getMe } from '../services/api'
 
 export default function LoginPage() {
   const { t, i18n } = useTranslation()
@@ -19,7 +19,18 @@ export default function LoginPage() {
     setError('')
     try {
       const data = await login(email, password)
-      signIn({ id: data.user_id, role: data.role, email }, data.access_token, data.refresh_token)
+      // Store tokens first so getMe() can attach the Authorization header
+      localStorage.setItem('access_token', data.access_token)
+      localStorage.setItem('refresh_token', data.refresh_token)
+      let userData = { id: data.user_id, role: data.role, email }
+      try {
+        // Fetch full user profile to get name, state_region, etc.
+        const me = await getMe()
+        userData = { ...userData, ...me }
+      } catch {
+        // Non-fatal: keep minimal userData if /auth/me fails
+      }
+      signIn(userData, data.access_token, data.refresh_token)
       navigate(data.role === 'patient' ? '/home' : '/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Check credentials.')
@@ -108,10 +119,10 @@ export default function LoginPage() {
         <details style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
           <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Demo accounts</summary>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>patient@ner.in / patpass (Patient)</li>
-            <li>caregiver@ner.in / carepass (Caregiver)</li>
-            <li>hw@ner.in / hwpass (Health Worker)</li>
-            <li>admin@ner.in / adminpass (Admin)</li>
+            <li>patient@ner.in / patpass <em>(Patient — games, reminders, daily tasks)</em></li>
+            <li>caregiver@ner.in / carepass <em>(Caregiver — view patient data, care notes)</em></li>
+            <li>hw@ner.in / hwpass <em>(Health Worker — visit planning + caregiver features)</em></li>
+            <li>admin@ner.in / adminpass <em>(Admin — user management, assign caregivers)</em></li>
           </ul>
         </details>
       </div>

@@ -14,7 +14,7 @@ router=APIRouter(tags=['activity'])
 @router.get('/patients/{patient_id}/activities',response_model=list[ActivityLogOut])
 def list_activities(patient_id:str,current_user:dict=Depends(get_current_user),db:Session=Depends(get_db)):
     if patient_id not in get_patients_for_user(current_user,db): raise HTTPException(403,'Not authorised')
-    logs = db.query(ActivityLog).filter(ActivityLog.patient_id==patient_id).order_by(ActivityLog.logged_at.asc()).all()
+    logs = db.query(ActivityLog).filter(ActivityLog.patient_id==patient_id).order_by(ActivityLog.recorded_at.asc()).all()
     return logs
 
 @router.post('/patients/{patient_id}/activities',response_model=ActivityLogOut,status_code=201)

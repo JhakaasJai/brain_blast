@@ -56,6 +56,15 @@ class UserOut(BaseModel):
     quiet_hours_end: Optional[str] = None
     is_verified: Optional[bool] = None
 
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["created_at"] = str(data["created_at"]) if data.get("created_at") else ""
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
+
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
@@ -172,6 +181,16 @@ class CaregiverLinkOut(BaseModel):
     relationship: str
     status: str
 
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["caregiver_id"] = str(data["caregiver_id"])
+            data["patient_id"] = str(data["patient_id"])
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
+
 
 class CaregiverLinkPatch(BaseModel):
     status: Literal["active", "revoked"]
@@ -185,6 +204,17 @@ class AuditEntryOut(BaseModel):
     action: str
     timestamp: str
 
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["actor_id"] = str(data["actor_id"])
+            data["patient_id"] = str(data["patient_id"])
+            data["timestamp"] = str(data["timestamp"]) if data.get("timestamp") else ""
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
+
 
 class CaregiverNoteCreate(BaseModel):
     patient_id: str
@@ -196,6 +226,17 @@ class CaregiverNoteOut(CaregiverNoteCreate):
     id: str
     author_id: str
     created_at: str
+
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["author_id"] = str(data["author_id"])
+            data["patient_id"] = str(data["patient_id"])
+            data["created_at"] = str(data["created_at"]) if data.get("created_at") else ""
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
 
 
 # ── Game Sessions ─────────────────────────────────────────────────────────────
@@ -260,9 +301,6 @@ class ReminderOut(BaseModel):
     active: bool = True
     critical: bool = False
     escalation_minutes: int = 60
-
-    class Config:
-        from_attributes = True
 
     @classmethod
     def model_validate(cls, obj, *args, **kwargs):
@@ -472,9 +510,20 @@ class DailyTaskOut(BaseModel):
     patient_id: str
     label: str          # e.g. "Morning tea", "Take medication"
     icon: str           # e.g. "pill", "water", "hygiene"
-    category: str       # morning | hygiene | meals | exercise | evening
+    category: str       # morning | hygiene | meals | exercise | evening | health
     done: bool
     done_at: Optional[str] = None
+
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["patient_id"] = str(data["patient_id"])
+            if data.get("done_at") is not None:
+                data["done_at"] = str(data["done_at"])
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
 
 
 class DailyTaskToggle(BaseModel):
@@ -501,6 +550,16 @@ class MoodCheckinOut(BaseModel):
     notes: Optional[str] = None
     recorded_at: str
 
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["patient_id"] = str(data["patient_id"])
+            data["recorded_at"] = str(data["recorded_at"]) if data.get("recorded_at") else ""
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
+
 
 # ── Physical Activity ──────────────────────────────────────────────────────────
 
@@ -521,6 +580,16 @@ class ActivityLogOut(BaseModel):
     intensity: Optional[str] = None
     notes: Optional[str] = None
     recorded_at: str
+
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if hasattr(obj, "__table__"):
+            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
+            data["id"] = str(data["id"])
+            data["patient_id"] = str(data["patient_id"])
+            data["recorded_at"] = str(data["recorded_at"]) if data.get("recorded_at") else ""
+            return super().model_validate(data, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
 
 
 # ── Caregiver Education Library ───────────────────────────────────────────────

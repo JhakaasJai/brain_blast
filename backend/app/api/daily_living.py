@@ -19,9 +19,12 @@ router = APIRouter(tags=["daily-living"])
 
 def _default_tasks(patient_id: str, db: Session):
     tasks = [
-        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Take morning medication", "icon": "pill", "category": "health"},
-        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Drink a glass of water", "icon": "water", "category": "health"},
+        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Take morning medication", "icon": "pill", "category": "morning"},
+        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Drink a glass of water", "icon": "water", "category": "morning"},
         {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Brush teeth", "icon": "hygiene", "category": "hygiene"},
+        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Eat breakfast", "icon": "meals", "category": "meals"},
+        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Take a short walk", "icon": "exercise", "category": "exercise"},
+        {"id": str(uuid.uuid4()), "patient_id": patient_id, "label": "Evening medication", "icon": "pill", "category": "evening"},
     ]
     db_tasks = []
     for t in tasks:

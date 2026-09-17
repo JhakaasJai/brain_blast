@@ -152,31 +152,47 @@ def admin_assign_caregiver(
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
         
-    caregiver = db.query(User).filter(User.id == body.caregiver_id, User.role == "caregiver").first()
+    caregiver = db.query(User).filter(User.id == body.caregiver_id, User.role.in_(["caregiver", "health_worker"])).first()
     if not caregiver:
-        raise HTTPException(status_code=404, detail="Caregiver not found or invalid role")
+        raise HTTPException(status_code=404, detail="Caregiver or health worker not found or invalid role")
         
     patient = db.query(User).filter(User.id == body.patient_id, User.role == "patient").first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found or invalid role")
-        
-    existing = db.query(CaregiverLink).filter(
-        CaregiverLink.caregiver_id == body.caregiver_id,
-        CaregiverLink.patient_id == body.patient_id
-    ).first()
-    
-    if existing:
-        existing.status = "active"
-        existing.relationship = body.relationship
+
+    if caregiver.role == "health_worker":
+        # For health workers, use HWPatientMap
+        from app.models import HWPatientMap
+        existing_hw = db.query(HWPatientMap).filter(
+            HWPatientMap.hw_id == body.caregiver_id,
+            HWPatientMap.patient_id == body.patient_id
+        ).first()
+        if not existing_hw:
+            hw_map = HWPatientMap(
+                id=uuid.uuid4(),
+                hw_id=body.caregiver_id,
+                patient_id=body.patient_id
+            )
+            db.add(hw_map)
     else:
-        link = CaregiverLink(
-            id=uuid.uuid4(),
-            caregiver_id=body.caregiver_id,
-            patient_id=body.patient_id,
-            relationship=body.relationship,
-            status="active"
-        )
-        db.add(link)
+        # For caregivers, use CaregiverLink
+        existing = db.query(CaregiverLink).filter(
+            CaregiverLink.caregiver_id == body.caregiver_id,
+            CaregiverLink.patient_id == body.patient_id
+        ).first()
+        
+        if existing:
+            existing.status = "active"
+            existing.relationship = body.relationship
+        else:
+            link = CaregiverLink(
+                id=uuid.uuid4(),
+                caregiver_id=body.caregiver_id,
+                patient_id=body.patient_id,
+                relationship=body.relationship,
+                status="active"
+            )
+            db.add(link)
         
     db.commit()
     return {"ok": True, "detail": "Caregiver successfully assigned"}

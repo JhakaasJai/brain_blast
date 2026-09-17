@@ -51,7 +51,7 @@ export default function AdminPanel() {
   }
 
   const patients = users.filter(u => u.role === 'patient')
-  const caregivers = users.filter(u => u.role === 'caregiver')
+  const caregivers = users.filter(u => u.role === 'caregiver' || u.role === 'health_worker')
 
   return (
     <div className="card" style={{ marginTop: '1.5rem' }}>
@@ -65,9 +65,9 @@ export default function AdminPanel() {
       ) : (
         <form onSubmit={handleAssign}>
           <div className="mb-2">
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.4rem' }}>Select Caregiver</label>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.4rem' }}>Select Caregiver or Health Worker</label>
             <select name="caregiver_id" className="input" style={{ appearance: 'auto' }} required value={formData.caregiver_id} onChange={handleChange}>
-              <option value="">-- Choose Caregiver --</option>
+              <option value="">-- Choose Caregiver / Health Worker --</option>
               {caregivers.map(c => (
                 <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
               ))}
