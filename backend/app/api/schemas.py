@@ -2,8 +2,19 @@
 Pydantic request/response schemas for all endpoints.
 These define the real contract that production would also use.
 """
-from typing import Optional, Literal
-from pydantic import BaseModel
+from typing import Optional, Literal, Any
+from uuid import UUID
+from datetime import datetime
+from pydantic import BaseModel, field_serializer
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _str_uuid(v: Any) -> str:
+    return str(v) if v is not None else None
+
+def _str_dt(v: Any) -> str:
+    return str(v) if v is not None else ""
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -44,26 +55,26 @@ class RefreshRequest(BaseModel):
 
 class UserOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
+    id: Any
     email: str
     role: str
     name: str
     phone: Optional[str] = None
     preferred_language: Optional[str] = None
     state_region: Optional[str] = None
-    created_at: str
+    created_at: Any
     quiet_hours_start: Optional[str] = None
     quiet_hours_end: Optional[str] = None
     is_verified: Optional[bool] = None
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["created_at"] = str(data["created_at"]) if data.get("created_at") else ""
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id")
+    def serialize_id(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -130,9 +141,24 @@ class MedicationCreate(BaseModel):
     active: bool = True
 
 
-class MedicationOut(MedicationCreate):
-    id: str
+class MedicationOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: Any
+    patient_id: Any
+    name: str
+    dose: str
+    form: str = "tablet"
+    instructions: str = "Follow the clinician or pharmacist instructions."
+    prescribing_clinician: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    refill_date: Optional[str] = None
+    active: bool = True
     missed_dose_guidance: str
+
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Safety check-ins ────────────────────────────────────────────────────────────
@@ -145,10 +171,24 @@ class SafetyCheckInCreate(BaseModel):
     approximate_area: Optional[str] = None
 
 
-class SafetyCheckInOut(SafetyCheckInCreate):
-    id: str
-    checked_in_at: str
+class SafetyCheckInOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: Any
+    patient_id: Any
+    status: str
+    note: Optional[str] = None
+    share_location: bool = False
+    approximate_area: Optional[str] = None
+    checked_in_at: Any
     consent_required: bool = True
+
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("checked_in_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Emergency Contacts ────────────────────────────────────────────────────────
@@ -161,8 +201,18 @@ class EmergencyContactCreate(BaseModel):
     is_primary: bool = False
 
 
-class EmergencyContactOut(EmergencyContactCreate):
-    id: str
+class EmergencyContactOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: Any
+    patient_id: Any
+    name: str
+    phone: str
+    relationship: str
+    is_primary: bool = False
+
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Caregiver Links ───────────────────────────────────────────────────────────
@@ -175,21 +225,15 @@ class CaregiverLinkCreate(BaseModel):
 
 class CaregiverLinkOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    caregiver_id: str
-    patient_id: str
+    id: Any
+    caregiver_id: Any
+    patient_id: Any
     relationship: str
     status: str
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["caregiver_id"] = str(data["caregiver_id"])
-            data["patient_id"] = str(data["patient_id"])
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id", "caregiver_id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 class CaregiverLinkPatch(BaseModel):
@@ -198,22 +242,19 @@ class CaregiverLinkPatch(BaseModel):
 
 class AuditEntryOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    actor_id: str
-    patient_id: str
+    id: Any
+    actor_id: Any
+    patient_id: Any
     action: str
-    timestamp: str
+    timestamp: Any
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["actor_id"] = str(data["actor_id"])
-            data["patient_id"] = str(data["patient_id"])
-            data["timestamp"] = str(data["timestamp"]) if data.get("timestamp") else ""
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id", "actor_id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("timestamp")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 class CaregiverNoteCreate(BaseModel):
@@ -222,21 +263,22 @@ class CaregiverNoteCreate(BaseModel):
     category: Literal["handover", "observation", "appointment", "routine", "other"] = "handover"
 
 
-class CaregiverNoteOut(CaregiverNoteCreate):
-    id: str
-    author_id: str
-    created_at: str
+class CaregiverNoteOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: Any
+    patient_id: Any
+    author_id: Any
+    note: str
+    category: str
+    created_at: Any
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["author_id"] = str(data["author_id"])
-            data["patient_id"] = str(data["patient_id"])
-            data["created_at"] = str(data["created_at"]) if data.get("created_at") else ""
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id", "patient_id", "author_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("created_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Game Sessions ─────────────────────────────────────────────────────────────
@@ -293,29 +335,28 @@ class ReminderUpdate(BaseModel):
 
 class ReminderOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     category: str
     message: str
-    schedule_rule: Optional[dict] = None
+    schedule_rule: Optional[Any] = None
     active: bool = True
     critical: bool = False
     escalation_minutes: int = 60
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("schedule_rule")
+    def serialize_schedule_rule(self, v: Any) -> Optional[dict]:
         import json
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["patient_id"] = str(data["patient_id"])
-            if isinstance(data.get("schedule_rule"), str):
-                try:
-                    data["schedule_rule"] = json.loads(data["schedule_rule"])
-                except Exception:
-                    data["schedule_rule"] = {}
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return {}
+        return v
 
 
 class ReminderEscalationOut(BaseModel):
@@ -418,10 +459,10 @@ class TrendResponse(BaseModel):
 
 class AlertOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     type: str
-    triggered_at: str
+    triggered_at: Any
     channel: str
     delivered: bool
     resolved: bool
@@ -429,6 +470,14 @@ class AlertOut(BaseModel):
     explanation: Optional[str] = None
     observed_threshold: Optional[str] = None
     next_step: Optional[str] = None
+
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("triggered_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Voice ─────────────────────────────────────────────────────────────────────
@@ -459,13 +508,21 @@ class TTSResponse(BaseModel):
 
 class ReminiscencePromptOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     theme: str          # family | home | festivals | seasons | work | food
     title: str
     prompt_text: str
-    created_by: str     # caregiver/admin user_id
-    created_at: str
+    created_by: Any     # caregiver/admin user_id
+    created_at: Any
+
+    @field_serializer("id", "patient_id", "created_by")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("created_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 class ReminiscenceNoteIn(BaseModel):
@@ -476,11 +533,19 @@ class ReminiscenceNoteIn(BaseModel):
 
 class ReminiscenceNoteOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    prompt_id: str
-    patient_id: str
+    id: Any
+    prompt_id: Any
+    patient_id: Any
     note_text: str
-    recorded_at: str
+    recorded_at: Any
+
+    @field_serializer("id", "prompt_id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("recorded_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Social Connection ──────────────────────────────────────────────────────────
@@ -493,37 +558,42 @@ class SocialMessageIn(BaseModel):
 
 class SocialMessageOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
-    sender_id: str
+    id: Any
+    patient_id: Any
+    sender_id: Any
     sender_name: str
     sender_role: str
     message_text: str
-    sent_at: str
+    sent_at: Any
+
+    @field_serializer("id", "patient_id", "sender_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("sent_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Daily Living Assistance ───────────────────────────────────────────────────
 
 class DailyTaskOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     label: str          # e.g. "Morning tea", "Take medication"
     icon: str           # e.g. "pill", "water", "hygiene"
     category: str       # morning | hygiene | meals | exercise | evening | health
     done: bool
-    done_at: Optional[str] = None
+    done_at: Optional[Any] = None
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["patient_id"] = str(data["patient_id"])
-            if data.get("done_at") is not None:
-                data["done_at"] = str(data["done_at"])
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("done_at")
+    def serialize_dt(self, v: Any) -> Optional[str]:
+        return str(v) if v is not None else None
 
 
 class DailyTaskToggle(BaseModel):
@@ -542,23 +612,21 @@ class MoodCheckinIn(BaseModel):
 
 class MoodCheckinOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     mood_score: int
     sleep_hours: Optional[float] = None
     sleep_quality: Optional[str] = None
     notes: Optional[str] = None
-    recorded_at: str
+    recorded_at: Any
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["patient_id"] = str(data["patient_id"])
-            data["recorded_at"] = str(data["recorded_at"]) if data.get("recorded_at") else ""
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("recorded_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Physical Activity ──────────────────────────────────────────────────────────
@@ -573,23 +641,21 @@ class ActivityLogIn(BaseModel):
 
 class ActivityLogOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     activity_type: str
     duration_minutes: int
     intensity: Optional[str] = None
     notes: Optional[str] = None
-    recorded_at: str
+    recorded_at: Any
 
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        if hasattr(obj, "__table__"):
-            data = {c.key: getattr(obj, c.key) for c in obj.__table__.columns}
-            data["id"] = str(data["id"])
-            data["patient_id"] = str(data["patient_id"])
-            data["recorded_at"] = str(data["recorded_at"]) if data.get("recorded_at") else ""
-            return super().model_validate(data, *args, **kwargs)
-        return super().model_validate(obj, *args, **kwargs)
+    @field_serializer("id", "patient_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("recorded_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Caregiver Education Library ───────────────────────────────────────────────
@@ -618,7 +684,6 @@ class EducationArticleProgressOut(BaseModel):
     completed: bool
     updated_at: str
     
-
 
 class EducationArticleProgressMapOut(BaseModel):
     model_config = {"from_attributes": True}
@@ -653,13 +718,21 @@ class CaregiverWellbeingIn(BaseModel):
 
 class CaregiverWellbeingOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    user_id: str
+    id: Any
+    user_id: Any
     energy_score: int
     stress_score: int
     support_needed: Optional[str] = None
     notes: Optional[str] = None
-    recorded_at: str
+    recorded_at: Any
+
+    @field_serializer("id", "user_id")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("recorded_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Health-worker Route / Visit Planning ───────────────────────────────────────
@@ -679,16 +752,24 @@ class VisitPlanUpdate(BaseModel):
 
 class VisitPlanOut(BaseModel):
     model_config = {"from_attributes": True}
-    id: str
-    patient_id: str
+    id: Any
+    patient_id: Any
     patient_name: str
     scheduled_at: str
     purpose: str
     location: str
     notes: Optional[str] = None
     status: str
-    created_by: str
-    created_at: str
+    created_by: Any
+    created_at: Any
+
+    @field_serializer("id", "patient_id", "created_by")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("created_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Appointment Preparation (R16) ─────────────────────────────────────────────
@@ -714,14 +795,31 @@ class AppointmentPrepUpdate(BaseModel):
     extra_notes: Optional[str] = None
 
 
-class AppointmentPrepOut(AppointmentPrepCreate):
-    id: str
-    created_by: str
-    created_at: str
-    disclaimer: str = (
+class AppointmentPrepOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: Any
+    patient_id: Any
+    appointment_at: str
+    doctor_name: str
+    clinic_or_hospital: str
+    questions_to_ask: list[str] = []
+    items_to_bring: list[str] = []
+    transport_notes: Optional[str] = None
+    extra_notes: Optional[str] = None
+    created_by: Any
+    created_at: Any
+    disclaimer: Optional[str] = (
         "This preparation note is an organisational aid only and does not "
         "constitute medical advice. Discuss all clinical decisions with the patient's doctor."
     )
+
+    @field_serializer("id", "patient_id", "created_by")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("created_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""
 
 
 # ── Appointment Transport / Location Notes (R17) ──────────────────────────────
@@ -755,7 +853,32 @@ class TransportNoteUpdate(BaseModel):
     extra_notes: Optional[str] = None
 
 
-class TransportNoteOut(TransportNoteCreate):
-    id: str
-    created_by: str
-    created_at: str
+class TransportNoteOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: Any
+    patient_id: Any
+    appointment_ref: Optional[Any] = None
+    appointment_at: str
+    mode: str
+    pickup_point: str
+    pickup_time: str
+    driver_or_contact_name: Optional[str] = None
+    driver_or_contact_phone: Optional[str] = None
+    destination: str
+    estimated_travel_minutes: Optional[int] = None
+    return_notes: Optional[str] = None
+    extra_notes: Optional[str] = None
+    created_by: Any
+    created_at: Any
+
+    @field_serializer("id", "patient_id", "created_by")
+    def serialize_uuid(self, v: Any) -> str:
+        return str(v) if v is not None else ""
+
+    @field_serializer("appointment_ref")
+    def serialize_appt_ref(self, v: Any) -> Optional[str]:
+        return str(v) if v is not None else None
+
+    @field_serializer("created_at")
+    def serialize_dt(self, v: Any) -> str:
+        return str(v) if v is not None else ""

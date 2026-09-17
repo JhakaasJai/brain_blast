@@ -1,33 +1,40 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/AuthContext'
-import { getReminders, createReminder, updateReminder, deleteReminder } from '../services/api'
-
-const PATIENTS = [
-  { id: 'user-patient-1', name: 'Rina Borah (Assam)' },
-  { id: 'user-patient-2', name: 'Banshan Lyngdoh (Meghalaya)' },
-  { id: 'user-patient-3', name: 'Thoibi Haobijam (Manipur)' },
-]
+import { getReminders, createReminder, updateReminder, deleteReminder, getMyPatients } from '../services/api'
 
 const emptyForm = { category: 'medicine', message: '', schedule_rule: { time: '09:00', frequency: 'daily' }, active: true }
 
 export default function CaregiverRemindersPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [patientId, setPatientId] = useState(PATIENTS[0].id)
+  const [patients, setPatients] = useState([])
+  const [patientId, setPatientId] = useState('')
   const [reminders, setReminders] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Load real patients from backend
+  useEffect(() => {
+    if (user?.role === 'patient') return
+    getMyPatients()
+      .then(pts => {
+        setPatients(pts)
+        if (pts.length > 0) setPatientId(pts[0].id)
+      })
+      .catch(() => setError('Unable to load patients.'))
+  }, [user])
+
   async function load() {
+    if (!patientId) return
     setLoading(true); setError('')
     try { setReminders(await getReminders(patientId)) }
     catch (e) { setError(e.response?.data?.detail || 'Unable to load reminders.') }
     finally { setLoading(false) }
   }
-  useEffect(() => { if (user?.role !== 'patient') load() }, [patientId, user])
+  useEffect(() => { if (user?.role !== 'patient' && patientId) load() }, [patientId, user])
 
   const setField = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }))
   const setSchedule = (field) => (event) => setForm((current) => ({ ...current, schedule_rule: { ...current.schedule_rule, [field]: event.target.value } }))
@@ -61,29 +68,35 @@ export default function CaregiverRemindersPage() {
       </header>
       <div className="card">
         <label htmlFor="managed-patient">Patient</label>
-        <select id="managed-patient" className="input" value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-          {PATIENTS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        {patients.length === 0 ? (
+          <p style={{ color: 'var(--color-text-secondary)' }}>No patients assigned to you yet.</p>
+        ) : (
+          <select id="managed-patient" className="input" value={patientId} onChange={(e) => setPatientId(e.target.value)}>
+            {patients.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.email})</option>)}
+          </select>
+        )}
       </div>
-      <form className="card" onSubmit={save}>
-        <h2>{editingId ? 'Edit reminder' : 'Add reminder'}</h2>
-        {error && <p role="alert" className="error-text">{error}</p>}
-        <label htmlFor="rem-category">Category</label>
-        <select id="rem-category" className="input" value={form.category} onChange={setField('category')}>
-          <option value="medicine">Medicine</option><option value="hydration">Hydration</option><option value="activity">Activity</option><option value="appointment">Appointment</option>
-        </select>
-        <label htmlFor="rem-message">Message</label>
-        <input id="rem-message" className="input" value={form.message} onChange={setField('message')} required />
-        <label htmlFor="rem-time">Time</label>
-        <input id="rem-time" className="input" type="time" value={form.schedule_rule.time} onChange={setSchedule('time')} required />
-        <label htmlFor="rem-frequency">Frequency</label>
-        <select id="rem-frequency" className="input" value={form.schedule_rule.frequency} onChange={setSchedule('frequency')}>
-          <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="once">Once</option>
-        </select>
-        <label><input type="checkbox" checked={form.active} onChange={(e) => setForm((current) => ({ ...current, active: e.target.checked }))} /> Active</label>
-        <button className="btn btn-primary" type="submit">{editingId ? 'Save changes' : 'Create reminder'}</button>
-        {editingId && <button className="btn btn-ghost" type="button" onClick={reset}>Cancel</button>}
-      </form>
+      {patientId && (
+        <form className="card" onSubmit={save}>
+          <h2>{editingId ? 'Edit reminder' : 'Add reminder'}</h2>
+          {error && <p role="alert" className="error-text">{error}</p>}
+          <label htmlFor="rem-category">Category</label>
+          <select id="rem-category" className="input" value={form.category} onChange={setField('category')}>
+            <option value="medicine">Medicine</option><option value="hydration">Hydration</option><option value="activity">Activity</option><option value="appointment">Appointment</option>
+          </select>
+          <label htmlFor="rem-message">Message</label>
+          <input id="rem-message" className="input" value={form.message} onChange={setField('message')} required />
+          <label htmlFor="rem-time">Time</label>
+          <input id="rem-time" className="input" type="time" value={form.schedule_rule.time} onChange={setSchedule('time')} required />
+          <label htmlFor="rem-frequency">Frequency</label>
+          <select id="rem-frequency" className="input" value={form.schedule_rule.frequency} onChange={setSchedule('frequency')}>
+            <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="once">Once</option>
+          </select>
+          <label><input type="checkbox" checked={form.active} onChange={(e) => setForm((current) => ({ ...current, active: e.target.checked }))} /> Active</label>
+          <button className="btn btn-primary" type="submit">{editingId ? 'Save changes' : 'Create reminder'}</button>
+          {editingId && <button className="btn btn-ghost" type="button" onClick={reset}>Cancel</button>}
+        </form>
+      )}
       {loading && <p>Loading…</p>}
       {reminders.map((reminder) => (
         <article className="card" key={reminder.id}>

@@ -4,21 +4,16 @@ import {
   getAppointmentPreps,
   createAppointmentPrep,
   deleteAppointmentPrep,
+  getMyPatients,
 } from '../services/api'
 import { useAuth } from '../components/AuthContext'
-
-const PATIENTS = [
-  { id: 'user-patient-1', name: 'Rina Borah (Assam)' },
-  { id: 'user-patient-2', name: 'Banshan Lyngdoh (Meghalaya)' },
-  { id: 'user-patient-3', name: 'Thoibi Haobijam (Manipur)' },
-]
 
 const DISCLAIMER =
   'This preparation note is an organisational aid only and does not constitute medical advice. ' +
   "Discuss all clinical decisions with the patient's doctor."
 
 const BLANK_FORM = {
-  patientId: PATIENTS[0].id,
+  patientId: '',
   appointmentAt: '',
   doctorName: '',
   clinicOrHospital: '',
@@ -42,6 +37,7 @@ export default function AppointmentPrepPage() {
   const isCareTeam =
     user && ['caregiver', 'health_worker', 'admin'].includes(user.role)
 
+  const [patients, setPatients] = useState([])
   const [preps, setPreps] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,14 +45,26 @@ export default function AppointmentPrepPage() {
   const [form, setForm] = useState(BLANK_FORM)
   const [showForm, setShowForm] = useState(false)
 
-  /* Patients a care-team member might view; patients only see themselves. */
-  const patientOptions = isCareTeam
-    ? PATIENTS
-    : PATIENTS.filter((p) => p.id === user?.id)
-
   const [viewPatientId, setViewPatientId] = useState(
-    isCareTeam ? PATIENTS[0].id : user?.id ?? PATIENTS[0].id
+    isCareTeam ? '' : user?.id ?? ''
   )
+
+  // Load real patients for care team
+  useEffect(() => {
+    if (!isCareTeam) return
+    getMyPatients()
+      .then(pts => {
+        setPatients(pts)
+        if (pts.length > 0) {
+          setViewPatientId(pts[0].id)
+          setForm(f => ({ ...f, patientId: pts[0].id }))
+        }
+      })
+      .catch(() => setError('Could not load patients.'))
+  }, [isCareTeam])
+
+  /* Patients a care-team member might view; patients only see themselves. */
+  const patientOptions = isCareTeam ? patients : (user ? [user] : [])
 
   const load = () => {
     setLoading(true)
@@ -175,11 +183,11 @@ export default function AppointmentPrepPage() {
                     value={form.patientId}
                     onChange={handleField('patientId')}
                   >
-                    {PATIENTS.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
+                  {patientOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
                   </select>
                 </label>
                 <label>

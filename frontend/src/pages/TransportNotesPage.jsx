@@ -5,14 +5,9 @@ import {
   createTransportNote,
   updateTransportNote,
   deleteTransportNote,
+  getMyPatients,
 } from '../services/api'
 import { useAuth } from '../components/AuthContext'
-
-const PATIENTS = [
-  { id: 'user-patient-1', name: 'Rina Borah (Assam)' },
-  { id: 'user-patient-2', name: 'Banshan Lyngdoh (Meghalaya)' },
-  { id: 'user-patient-3', name: 'Thoibi Haobijam (Manipur)' },
-]
 
 const MODE_LABELS = {
   walk: '🚶 Walk',
@@ -25,7 +20,7 @@ const MODE_LABELS = {
 }
 
 const BLANK = {
-  patientId: PATIENTS[0].id,
+  patientId: '',
   appointmentRef: '',
   appointmentAt: '',
   mode: 'auto',
@@ -46,16 +41,30 @@ export default function TransportNotesPage() {
   const isCareTeam =
     user && ['caregiver', 'health_worker', 'admin'].includes(user.role)
 
-  const defaultPatientId = isCareTeam ? PATIENTS[0].id : user?.id ?? PATIENTS[0].id
-  const [viewPatientId, setViewPatientId] = useState(defaultPatientId)
+  const [patients, setPatients] = useState([])
+  const [viewPatientId, setViewPatientId] = useState(isCareTeam ? '' : user?.id ?? '')
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ ...BLANK, patientId: defaultPatientId })
+  const [form, setForm] = useState({ ...BLANK, patientId: isCareTeam ? '' : user?.id ?? '' })
   const [editingId, setEditingId] = useState(null)
   const [editPickup, setEditPickup] = useState('')
+
+  // Load real patients for care team
+  useEffect(() => {
+    if (!isCareTeam) return
+    getMyPatients()
+      .then(pts => {
+        setPatients(pts)
+        if (pts.length > 0) {
+          setViewPatientId(pts[0].id)
+          setForm(f => ({ ...f, patientId: pts[0].id }))
+        }
+      })
+      .catch(() => setError('Could not load patients.'))
+  }, [isCareTeam])
 
   const load = () => {
     setLoading(true)
@@ -149,7 +158,7 @@ export default function TransportNotesPage() {
                 }}
                 style={{ maxWidth: 320 }}
               >
-                {PATIENTS.map((p) => (
+                {patients.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
@@ -172,7 +181,7 @@ export default function TransportNotesPage() {
                 <label>
                   Patient
                   <select className="input" value={form.patientId} onChange={field('patientId')}>
-                    {PATIENTS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </label>
                 <label>

@@ -119,7 +119,10 @@ def update_reminder(
     if current_user["role"] not in ("caregiver", "health_worker", "admin"):
         raise HTTPException(status_code=403, detail="Only caregivers or care teams can manage reminders")
         
+    import json
     for field, value in body.model_dump(exclude_none=True).items():
+        if field == "schedule_rule" and isinstance(value, dict):
+            value = json.dumps(value)
         setattr(rem, field, value)
         
     db.commit()

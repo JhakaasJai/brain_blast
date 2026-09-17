@@ -5,7 +5,7 @@ import { createCaregiverNote, getCaregiverNotes } from '../services/api'
 export default function CaregiverNotesPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const patientId = params.get('patient_id') || 'user-patient-1'
+  const patientId = params.get('patient_id') || ''
   const [notes, setNotes] = useState([])
   const [note, setNote] = useState('')
   const [category, setCategory] = useState('handover')

@@ -1,25 +1,29 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createVisitPlan, getVisitPlans, updateVisitPlan } from '../services/api'
+import { createVisitPlan, getVisitPlans, updateVisitPlan, getMyPatients } from '../services/api'
 import { useAuth } from '../components/AuthContext'
-
-const patients = [
-  { id: 'user-patient-1', name: 'Rina Borah (Assam)' },
-  { id: 'user-patient-2', name: 'Banshan Lyngdoh (Meghalaya)' },
-  { id: 'user-patient-3', name: 'Thoibi Haobijam (Manipur)' },
-]
 
 export default function VisitPlanningPage() {
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const [visits, setVisits] = useState([])
-  const [patientId, setPatientId] = useState(patients[0].id)
+  const [patients, setPatients] = useState([])
+  const [patientId, setPatientId] = useState('')
   const [scheduledAt, setScheduledAt] = useState('')
   const [purpose, setPurpose] = useState('Routine wellbeing check')
   const [location, setLocation] = useState('Patient home')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    getMyPatients()
+      .then(pts => {
+        setPatients(pts)
+        if (pts.length > 0) setPatientId(pts[0].id)
+      })
+      .catch(() => {})
+  }, [])
 
   const load = () => getVisitPlans().then(setVisits).catch(() => setError('Could not load visit plans.'))
   useEffect(() => { load() }, [])
