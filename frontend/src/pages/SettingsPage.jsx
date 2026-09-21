@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../components/AuthContext'
 import { getCaregiverLinks, updateCaregiverLink, getProfile, updateProfile, getRegionalThemes, getMe, updateMe, deleteAccount } from '../services/api'
 import { getVoicePack, isTTSSupported, speak } from '../services/voice'
+import BottomNav from '../components/BottomNav'
+import { SettingsIcon } from '../components/Icons'
 
 const LANGUAGES = [
   { code: 'en',  label: 'English' },
@@ -144,12 +146,20 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', paddingBottom: '84px' }}>
       <header className="app-header">
-        <button className="btn btn-ghost" style={{ color: '#fff', minHeight: 44 }}
-          onClick={() => navigate(-1)}>← {t('back')}</button>
-        <h1>⚙️ {t('settings')}</h1>
-        <span />
+        <button
+          className="btn btn-ghost"
+          style={{ color: '#FFFFFF', minHeight: '44px', padding: '0.3rem 0.8rem' }}
+          onClick={() => navigate(-1)}
+        >
+          ← {t('back')}
+        </button>
+        <h1>
+          <SettingsIcon size={26} color="#FFFFFF" />
+          <span>{t('settings')}</span>
+        </h1>
+        <span style={{ width: '44px' }} />
       </header>
 
       <div className="page">
@@ -297,6 +307,8 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

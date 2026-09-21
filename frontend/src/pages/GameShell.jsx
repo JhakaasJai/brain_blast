@@ -15,6 +15,15 @@ import AttentionGame from '../games/AttentionGame'
 import RoutineGame from '../games/RoutineGame'
 import RecognitionGame from '../games/RecognitionGame'
 
+import { MemoryIcon, AttentionIcon, RoutineIcon, RecognitionIcon, ArrowRightIcon } from '../components/Icons'
+
+const GAME_ICONS = {
+  memory: MemoryIcon,
+  attention: AttentionIcon,
+  routine: RoutineIcon,
+  recognition: RecognitionIcon,
+}
+
 const GAME_COMPONENTS = {
   memory:      MemoryGame,
   attention:   AttentionGame,
@@ -129,25 +138,48 @@ export default function GameShell() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       <header className="app-header">
-        <button className="btn btn-ghost" style={{ color: '#fff', minHeight: 44 }}
-          onClick={() => navigate('/home')}>
+        <button
+          className="btn btn-ghost"
+          style={{ color: '#FFFFFF', minHeight: '48px', padding: '0.4rem 0.85rem' }}
+          onClick={() => navigate('/home')}
+        >
           ← {t('home')}
         </button>
-        <h1 style={{ fontSize: 'var(--font-size-base)' }}>{t(`${gameType}_game`)}</h1>
-        <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>{t(difficulty)}</span>
+        <h1 style={{ fontSize: '1.2rem', margin: 0 }}>{t(`${gameType}_game`)}</h1>
+        <span style={{
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          padding: '0.2rem 0.6rem',
+          borderRadius: '999px',
+          background: 'rgba(255,255,255,0.2)',
+          color: '#FFFFFF'
+        }}>
+          {t(difficulty)}
+        </span>
       </header>
 
       <div className="page">
         {phase === 'intro' && (
-          <div className="card text-center">
-            <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
-              {gameType === 'memory' ? '🃏' : gameType === 'attention' ? '👁️' :
-               gameType === 'routine' ? '📅' : '🎨'}
+          <div className="card text-center" style={{ padding: '2rem 1.5rem', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{
+              width: '84px',
+              height: '84px',
+              borderRadius: '50%',
+              background: 'var(--color-primary-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+              color: 'var(--color-primary)'
+            }}>
+              {React.createElement(GAME_ICONS[gameType] || MemoryIcon, { size: 44, color: 'var(--color-primary)' })}
             </div>
-            <h2 style={{ fontSize: 'var(--font-size-xl)' }}>{t(`${gameType}_game`)}</h2>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: '0.75rem' }}>
-              {t('difficulty')}: <strong>{t(difficulty)}</strong>
-            </p>
+            <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{t(`${gameType}_game`)}</h2>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <span className={`diff-badge ${difficulty === 'hard' ? 'diff-hard' : difficulty === 'medium' ? 'diff-medium' : 'diff-easy'}`} style={{ fontSize: '1rem', padding: '0.35rem 0.85rem' }}>
+                <span>{difficulty === 'hard' ? '●●● Hard' : difficulty === 'medium' ? '●● Medium' : '● Easy'}</span>
+              </span>
+            </div>
             {difficultyInfo?.reason && (
               <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>
                 Adaptive level: {difficultyInfo.reason}
@@ -163,26 +195,32 @@ export default function GameShell() {
               onClick={() => setShowHint((visible) => !visible)}
               style={{ marginBottom: '0.75rem' }}
             >
-              💡 {showHint ? 'Hide hint' : 'Show a hint'}
+              <span>💡</span>
+              <span>{showHint ? 'Hide hint' : 'Show a hint'}</span>
             </button>
             {showHint && (
               <p
                 role="status"
                 style={{
-                  background: '#fff8e1',
-                  border: '1px solid #f0c36d',
-                  borderRadius: 8,
-                  padding: '0.75rem',
+                  background: 'var(--color-secondary-tint)',
+                  border: '1.5px solid #F0C36D',
+                  borderRadius: 12,
+                  padding: '1rem',
                   textAlign: 'left',
-                  marginBottom: '0.75rem',
+                  marginBottom: '1rem',
+                  fontSize: '1.05rem',
+                  lineHeight: 1.5
                 }}
               >
                 💡 {getHint(gameType)}
               </p>
             )}
-            <button className="btn btn-primary btn-block btn-lg"
+            <button
+              className="btn btn-primary btn-block btn-lg"
               disabled={difficultyLoading}
-              onClick={() => { setPhase('playing'); speak(t('start_game')) }}>
+              onClick={() => { setPhase('playing'); speak(t('start_game')) }}
+              style={{ fontWeight: 700 }}
+            >
               {t('start_game')}
             </button>
           </div>
